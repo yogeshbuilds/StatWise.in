@@ -27,12 +27,12 @@ The live site https://statwise.in was crawled: every URL in the sitemap, every i
 
 ## To improve (not blockers)
 
-1. **SEO title for the unemployment article.** The headline is 87 characters, and Google shows about 60. In Studio, open the article → *Dates, tags & SEO* → *SEO title*, and set something like
+1. ✅ *Done by owner 2026-10-30.* **SEO title for the unemployment article.** The headline is 87 characters, and Google shows about 60. In Studio, open the article → *Dates, tags & SEO* → *SEO title*, and set something like
    *"India's unemployment rate has almost halved: what PLFS data shows"* (63 characters).
 2. **Source links.**
    - `rchiips.org/nfhs/` currently has an **expired HTTPS certificate**, so readers see a browser warning.
    - `censusindia.gov.in` timed out from our test location.
    - Both are government sites outside our control. Consider linking to the specific report PDF, or to an alternative official mirror, and re-check before AdSense review.
 3. **Charts on phones.** Text inside the 1600×900 charts is small on mobile. For new charts use larger fonts or a 1200×1200 layout.
-4. **Rich Results Test.** Run https://search.google.com/test/rich-results on one article URL to see Google's own view of the structured data.
+4. ✅ *Passed 2026-10-30 (owner): Articles + Breadcrumbs eligible.* **Rich Results Test.** Run https://search.google.com/test/rich-results on one article URL to see Google's own view of the structured data.
 5. **Core Web Vitals.** Field data appears in Search Console only once there is real traffic. The site is static HTML with no JavaScript, so it should pass easily.
