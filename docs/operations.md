@@ -6,7 +6,8 @@
 |---|---|---|
 | Admin (write and publish) | https://statwise.sanity.studio | Sanity account (Google) |
 | Sanity project settings | https://www.sanity.io/manage/project/mpsmehrh | Sanity account |
-| Website (temporary URL) | https://statwise.personalyogesh352.workers.dev | — |
+| Website | https://statwise.in (www redirects here). The workers.dev copy is kept out of search results. | — |
+| Domain registrar | Hostinger hPanel. Renews 2027-10-30. Nameservers: clyde/dalary.ns.cloudflare.com | Hostinger |
 | Hosting dashboard and build logs | dash.cloudflare.com → Workers & Pages → `statwise` | Cloudflare |
 | Code | https://github.com/yogeshbuilds/StatWise.in | GitHub `yogeshbuilds` |
 

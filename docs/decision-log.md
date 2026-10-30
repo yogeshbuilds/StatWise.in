@@ -101,7 +101,20 @@ Alternatives considered:
 - **WordPress:** needs paid hosting, updates and security patching. Too much upkeep. Rejected.
 - **Custom backend:** forbidden by the PRD unless required. Rejected.
 
-## D006 — Domain (T005) — Pending (owner)
+## D006 — Domain (T005) — 2026-10-30 — Registered
+
+- statwise.in was registered at **Hostinger** on 2026-10-30. Registry expiry is **2027-10-30**.
+- First-year price: **₹647**, paid by the owner on 2026-10-30. Renewal price: _(owner to check in hPanel → Domains → statwise.in)_.
+- Spend so far: **₹647 of the ₹5,000 budget**. Everything else (Sanity, Cloudflare, GitHub) is on free plans.
+- DNS moves to Cloudflare (free plan) by changing the nameservers at Hostinger. DNSSEC was off at registration.
+- **Live 2026-10-30:**
+  - Nameservers switched to `clyde`/`dalary.ns.cloudflare.com` at 14:29.
+  - `statwise.in` is a Worker custom domain, with a Google Trust Services certificate.
+  - `www.statwise.in` redirects to the root with a 301, through the Cloudflare "Redirect from WWW to Root" rule.
+  - http redirects to https.
+- AI bots: search and agent crawlers allowed, **training crawlers blocked** via Cloudflare managed robots.txt (Content-Signal `ai-train=no`). Googlebot and Bingbot are unaffected.
+
+Original notes:
 
 - Cloudflare Registrar **does not sell `.in` domains**, so statwise.in has to be bought from another registrar (e.g. GoDaddy, Hostinger, BigRock, Namecheap).
 - After buying, change the domain's **nameservers to Cloudflare** (free plan) so DNS, HTTPS and email forwarding work.
