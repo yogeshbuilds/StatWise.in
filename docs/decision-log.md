@@ -74,6 +74,12 @@ Deploy hook:
 - Cloudflare Workers Builds now offers **Deploy Hooks**: a secret URL that starts a build of `main` on POST. It allows 10 builds per minute per Worker, and triggers that arrive while a build is still queued are merged.
 - So the setup is now **Sanity webhook → Deploy Hook**. No GitHub token and no GitHub Actions are needed.
 - The hook URL is stored only in the Sanity webhook settings.
+- **Verified 2026-10-30 (T034–T036)** with `studio/scripts/test-publishing.ts` against the live site:
+  - Publish, update and slug change each went live in 32–34 s; the old slug returned a 301.
+  - A draft-only save left the live site unchanged.
+  - Unpublish returned 404 and removed the article from listings and the sitemap.
+  - Delete kept the shared image.
+- A deliberately broken branch (`test-build-failure`) failed in Workers Builds with a readable log, and production was unaffected. The branch has been deleted.
 
 ## D004 — Publish → deploy automation — 2026-10-30 — Accepted
 
