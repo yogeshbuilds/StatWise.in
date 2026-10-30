@@ -41,7 +41,8 @@ Preview decision:
   - Control check: the 16 published categories are returned publicly.
   - Preview is the Studio "Preview" tab (`studio/components/ArticlePreview.tsx`), with a desktop/mobile toggle.
 - Project: `mpsmehrh`, dataset `production` (public). Studio: https://statwise.sanity.studio.
-- The dataset already held 7 trial documents from 2026-10-29 (types post, story, author, tag, siteSettings, a "Fundamentals" category, one image). They are left untouched pending the owner's decision. The new schema uses only `article` and `category`.
+- The dataset already held 7 trial documents from 2026-10-29 (types post, story, author, tag, siteSettings, a "Fundamentals" category, one image). The new schema uses only `article` and `category`.
+  - **Deleted 2026-10-30** at the owner's request. A copy is in the backup `exports/statwise-2026-10-30.tar.gz`. The dataset now holds only the 16 seeded categories.
 
 ## D003 — Hosting: Cloudflare Pages Free (T003) — 2026-10-30 — Accepted
 
