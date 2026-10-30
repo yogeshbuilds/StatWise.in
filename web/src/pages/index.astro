@@ -1,0 +1,30 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site';
+---
+
+<BaseLayout>
+  <section class="container hero">
+    <p class="kicker">Coming soon</p>
+    <h1>Data-driven stories about India, in plain language.</h1>
+    <p class="lede">
+      {SITE.name} reads the official numbers (budgets, surveys, census tables, RBI releases) and explains
+      what they say. Every story links to its original source.
+    </p>
+  </section>
+</BaseLayout>
+
+<style>
+  .hero {
+    padding-block: 3rem;
+  }
+  .hero h1 {
+    max-width: 18ch;
+  }
+  .lede {
+    font-family: var(--font-serif);
+    font-size: 1.25rem;
+    color: var(--ink-soft);
+    max-width: var(--measure);
+  }
+</style>

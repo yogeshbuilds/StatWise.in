@@ -1,0 +1,64 @@
+---
+import Logo from './Logo.astro';
+import { SITE, FOOTER_LINKS } from '../config/site';
+
+const year = new Date().getFullYear();
+---
+
+<footer class="site-footer">
+  <div class="container grid">
+    <div>
+      <Logo />
+      <p class="about">{SITE.description}</p>
+    </div>
+    <nav aria-label="Footer">
+      <ul>
+        {FOOTER_LINKS.map((link) => (
+          <li><a href={link.href}>{link.label}</a></li>
+        ))}
+      </ul>
+    </nav>
+  </div>
+  <div class="container legal">
+    <p>© {year} {SITE.name}. Data belongs to its original publishers; sources are cited in every story.</p>
+  </div>
+</footer>
+
+<style>
+  .site-footer {
+    border-top: 3px solid var(--ink);
+    background: var(--paper-tint);
+    padding-block: 2rem 1rem;
+    font-size: 0.9rem;
+  }
+  .grid {
+    display: grid;
+    gap: 1.5rem;
+  }
+  .about {
+    margin-top: 0.75rem;
+    color: var(--ink-soft);
+    max-width: 32rem;
+  }
+  ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem 1.5rem;
+  }
+  a { font-weight: 600; }
+  .legal {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    color: var(--muted);
+    font-size: 0.8125rem;
+  }
+  .legal p { margin: 0; }
+  @media (min-width: 768px) {
+    .grid { grid-template-columns: 2fr 1fr; align-items: start; }
+    ul { flex-direction: column; }
+  }
+</style>

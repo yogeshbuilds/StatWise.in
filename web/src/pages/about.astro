@@ -1,0 +1,24 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site';
+---
+
+<BaseLayout title="About" description={`What ${SITE.name} is and how it works.`}>
+  <article class="container prose">
+    <p class="kicker">About</p>
+    <h1>About {SITE.name}</h1>
+    <p>
+      India publishes a remarkable amount of public data, from national surveys and the census to budget
+      documents, RBI releases and ministry dashboards. Most of it is hard to find and harder to read.
+    </p>
+    <p>
+      {SITE.name} picks one question at a time, goes to the original source, and explains what the
+      numbers show and what they don't. Each story cites its data sources and, where calculations are
+      involved, describes the method.
+    </p>
+    <p>
+      We are independent and not affiliated with any government body, political party or data publisher.
+      If you spot an error, please tell us. Corrections are noted on the story.
+    </p>
+  </article>
+</BaseLayout>

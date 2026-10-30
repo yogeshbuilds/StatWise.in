@@ -1,0 +1,26 @@
+---
+interface Props {
+  size?: 'md' | 'lg';
+}
+const { size = 'md' } = Astro.props;
+---
+
+<a href="/" class:list={['logo', size]} aria-label="StatWise.in home">
+  <span class="stat">StatWise</span><span class="tld">.in</span>
+</a>
+
+<style>
+  .logo {
+    font-family: var(--font-sans);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    text-decoration: none;
+    line-height: 1;
+    white-space: nowrap;
+  }
+  .md { font-size: 1.6rem; }
+  .lg { font-size: clamp(2rem, 6vw, 2.75rem); }
+  .stat { color: var(--red); }
+  .tld { color: var(--ink); }
+  .logo:hover .stat { color: var(--red-dark); }
+</style>

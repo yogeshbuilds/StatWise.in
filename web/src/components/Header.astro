@@ -1,0 +1,77 @@
+---
+import Logo from './Logo.astro';
+import { SITE, NAV } from '../config/site';
+
+const path = Astro.url.pathname;
+const isCurrent = (href: string) => path === href || path.startsWith(href);
+---
+
+<header class="site-header">
+  <div class="container bar">
+    <Logo size="lg" />
+    <p class="tagline">{SITE.tagline}</p>
+  </div>
+
+  <nav class="nav" aria-label="Main">
+    <div class="container">
+      <!-- Plain list on wide screens; on narrow screens it scrolls sideways inside its own box. -->
+      <ul>
+        {NAV.map((item) => (
+          <li>
+            <a href={item.href} aria-current={isCurrent(item.href) ? 'page' : undefined}>
+              {item.label}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    border-bottom: 1px solid var(--rule);
+  }
+  .bar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding-block: 1.25rem 0.9rem;
+  }
+  .tagline {
+    margin: 0;
+    font-family: var(--font-serif);
+    font-style: italic;
+    color: var(--ink-soft);
+    font-size: 0.95rem;
+  }
+  .nav {
+    border-top: 3px solid var(--ink);
+  }
+  .nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    gap: 1.5rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .nav ul::-webkit-scrollbar { display: none; }
+  .nav a {
+    display: block;
+    padding-block: 0.7rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 3px solid transparent;
+  }
+  .nav a[aria-current='page'] {
+    border-bottom-color: var(--red);
+  }
+</style>

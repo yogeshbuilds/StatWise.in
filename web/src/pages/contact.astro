@@ -1,0 +1,35 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site';
+---
+
+<BaseLayout title="Contact" description={`How to reach ${SITE.name}.`}>
+  <article class="container prose">
+    <p class="kicker">Contact</p>
+    <h1>Contact</h1>
+    <p>Corrections, data tips and story suggestions are welcome.</p>
+
+    <section class="card" aria-labelledby="email-heading">
+      <h2 id="email-heading">Email</h2>
+      {SITE.contactEmail ? (
+        <p><a href={`mailto:${SITE.contactEmail}`}>{SITE.contactEmail}</a></p>
+      ) : (
+        <p class="meta">A contact address will be published here soon.</p>
+      )}
+    </section>
+  </article>
+</BaseLayout>
+
+<style>
+  .card {
+    margin-top: 2rem;
+    padding: 1.25rem 1.5rem;
+    border: 1px solid var(--rule);
+    border-left: 4px solid var(--red);
+    background: var(--paper-tint);
+  }
+  .card h2 {
+    font-size: 1.1rem;
+  }
+  .card p { margin: 0; }
+</style>

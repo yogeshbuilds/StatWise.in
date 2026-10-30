@@ -1,0 +1,24 @@
+# dependencies and build output
+node_modules/
+dist/
+.astro/
+studio/dist/
+.sanity/
+
+# environment and secrets
+.env
+.env.*
+!.env.example
+
+# content exports (kept outside git; see docs)
+exports/
+
+# OS / editor
+.DS_Store
+.vscode/
+.idea/
+*.log
+
+# private planning docs (repo is public)
+publication_platform_prd.pdf
+publication_project_tracker.xlsx
