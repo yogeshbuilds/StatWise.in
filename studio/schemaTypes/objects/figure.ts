@@ -16,7 +16,10 @@ export const figure = defineType({
       type: 'string',
       description:
         'Describe what the image shows for people who cannot see it. For a chart, state the main takeaway (e.g. "Bar chart: Kerala has the highest literacy rate at 94%").',
-      validation: (rule) => rule.required().min(5).max(250),
+      validation: (rule) => [
+        rule.required().min(5),
+        rule.max(250).warning('Long alt text is hard to listen to. Try to keep it under 250 characters.'),
+      ],
     }),
     defineField({
       name: 'caption',
