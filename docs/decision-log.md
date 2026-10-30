@@ -37,6 +37,11 @@ Preview decision:
 - Preview happens **inside Sanity Studio**, which is protected by your Sanity login. The plan is a Studio preview pane that renders the article like the site does, at desktop and mobile widths.
 - No read token is placed in the public site, and no public `/preview` route exists. This meets PRD §10 without a paid plan.
 - To be verified in T016 before Phase 2 is marked done.
+- **Verified 2026-10-30 (T016):** `studio/scripts/test-draft-privacy.ts` created a draft and queried the public API without a token using the `published`, `drafts` and `raw` perspectives. All three returned nothing, while the logged-in client could read the draft.
+  - Control check: the 16 published categories are returned publicly.
+  - Preview is the Studio "Preview" tab (`studio/components/ArticlePreview.tsx`), with a desktop/mobile toggle.
+- Project: `mpsmehrh`, dataset `production` (public). Studio: https://statwise.sanity.studio.
+- The dataset already held 7 trial documents from 2026-10-29 (types post, story, author, tag, siteSettings, a "Fundamentals" category, one image). They are left untouched pending the owner's decision. The new schema uses only `article` and `category`.
 
 ## D003 — Hosting: Cloudflare Pages Free (T003) — 2026-10-30 — Accepted
 

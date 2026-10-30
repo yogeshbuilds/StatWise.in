@@ -6,13 +6,14 @@ Articles are **text + images only**; charts and maps are made elsewhere and uplo
 - **PRD and task tracker:** kept privately by the owner (not in this repo)
 - **Decisions:** [`docs/decision-log.md`](docs/decision-log.md)
 - **Categories:** [`docs/categories.md`](docs/categories.md)
+- **Operations (backup, restore, links):** [`docs/operations.md`](docs/operations.md)
 
 ## Stack
 
 | Part | Tool | Folder |
 |---|---|---|
 | Public website | Astro (static output) | `web/` |
-| Admin / CMS | Sanity Studio + Content Lake | `studio/` (Phase 2) |
+| Admin / CMS | Sanity Studio + Content Lake (https://statwise.sanity.studio) | `studio/` |
 | Hosting | Cloudflare Workers (static assets) | `web/wrangler.jsonc` |
 | Publish → deploy | Sanity webhook → GitHub Actions → Cloudflare (Phase 5) | — |
 
