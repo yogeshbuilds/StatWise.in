@@ -6,6 +6,7 @@ Articles are **text + images only**; charts and maps are made elsewhere and uplo
 - **PRD and task tracker:** kept privately by the owner (not in this repo)
 - **Decisions:** [`docs/decision-log.md`](docs/decision-log.md)
 - **Categories:** [`docs/categories.md`](docs/categories.md)
+- **Launch checklist / AdSense readiness:** [`docs/launch-checklist.md`](docs/launch-checklist.md), [`docs/adsense-readiness.md`](docs/adsense-readiness.md)
 - **Operations (backup, restore, links):** [`docs/operations.md`](docs/operations.md)
 
 ## Stack

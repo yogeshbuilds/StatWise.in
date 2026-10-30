@@ -22,7 +22,15 @@ const {
   ogImage,
   ogType = 'website',
 } = Astro.props;
-const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
+// Search results show roughly 60 characters of a title and 160 of a description.
+// Long article titles skip the site-name suffix; long descriptions are cut at a word boundary.
+const fullTitle = !title
+  ? `${SITE.name} — ${SITE.tagline}`
+  : title.length > 45
+    ? title
+    : `${title} | ${SITE.name}`;
+const metaDescription =
+  description.length <= 160 ? description : description.slice(0, 157).replace(/\s+\S*$/, '') + '…';
 const canonical = canonicalOverride || new URL(Astro.url.pathname, SITE.url).href;
 const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
 ---
@@ -33,7 +41,7 @@ const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{fullTitle}</title>
-    <meta name="description" content={description} />
+    <meta name="description" content={metaDescription} />
     <link rel="canonical" href={canonical} />
     {(noindex || isDraftPreview) && <meta name="robots" content="noindex" />}
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -41,7 +49,7 @@ const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
     <meta property="og:site_name" content={SITE.name} />
     <meta property="og:type" content={ogType} />
     <meta property="og:title" content={title || SITE.name} />
-    <meta property="og:description" content={description} />
+    <meta property="og:description" content={metaDescription} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="en_IN" />
     <meta property="og:image" content={shareImage} />
