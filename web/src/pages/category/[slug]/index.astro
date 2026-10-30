@@ -1,0 +1,25 @@
+---
+import ListingPage from '../../../components/ListingPage.astro';
+import { getActiveCategories, getArticlesFull, type Category } from '../../../lib/queries';
+import { categoryUrl } from '../../../lib/format';
+import { SITE } from '../../../config/site';
+
+// Only categories with at least one published story get a page.
+export async function getStaticPaths() {
+  const categories = await getActiveCategories();
+  return categories.map((category) => ({ params: { slug: category.slug }, props: { category } }));
+}
+
+const { category } = Astro.props as { category: Category };
+const articles = (await getArticlesFull()).filter((a) => a.category?.slug === category.slug);
+---
+
+<ListingPage
+  title={category.name}
+  kicker="Topic"
+  intro={category.description}
+  description={category.description || `${category.name} stories from ${SITE.name}.`}
+  articles={articles}
+  page={1}
+  base={categoryUrl(category.slug)}
+/>

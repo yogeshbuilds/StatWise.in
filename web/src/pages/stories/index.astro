@@ -1,0 +1,16 @@
+---
+import ListingPage from '../../components/ListingPage.astro';
+import { getArticlesFull } from '../../lib/queries';
+import { SITE } from '../../config/site';
+
+const articles = await getArticlesFull();
+---
+
+<ListingPage
+  title="All stories"
+  kicker="Stories"
+  description={`Every data story published on ${SITE.name}, newest first.`}
+  articles={articles}
+  page={1}
+  base="/stories/"
+/>

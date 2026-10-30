@@ -1,9 +1,18 @@
 ---
 import Logo from './Logo.astro';
-import { SITE, NAV } from '../config/site';
+import { SITE } from '../config/site';
+import { getActiveCategories } from '../lib/queries';
+import { categoryUrl } from '../lib/format';
+
+// Menu: all stories, then categories that have published stories (so no link leads to an empty page).
+const categories = await getActiveCategories();
+const NAV = [
+  { label: 'Stories', href: '/stories/' },
+  ...categories.slice(0, 7).map((c) => ({ label: c.name, href: categoryUrl(c.slug) })),
+];
 
 const path = Astro.url.pathname;
-const isCurrent = (href: string) => path === href || path.startsWith(href);
+const isCurrent = (href: string) => path.startsWith(href);
 ---
 
 <header class="site-header">

@@ -1,0 +1,23 @@
+---
+import ListingPage from '../../../components/ListingPage.astro';
+import { getArticlesFull } from '../../../lib/queries';
+import { pageCount } from '../../../lib/paginate';
+import { SITE } from '../../../config/site';
+
+export async function getStaticPaths() {
+  const total = pageCount((await getArticlesFull()).length);
+  return Array.from({ length: total - 1 }, (_, i) => ({ params: { page: String(i + 2) } }));
+}
+
+const page = Number(Astro.params.page);
+const articles = await getArticlesFull();
+---
+
+<ListingPage
+  title="All stories"
+  kicker="Stories"
+  description={`Every data story published on ${SITE.name}, newest first.`}
+  articles={articles}
+  page={page}
+  base="/stories/"
+/>

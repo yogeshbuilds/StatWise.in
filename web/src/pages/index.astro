@@ -1,20 +1,118 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import ArticleCard from '../components/ArticleCard.astro';
 import { SITE } from '../config/site';
+import { getActiveCategories, getArticlesFull } from '../lib/queries';
+import { categoryUrl } from '../lib/format';
+
+const articles = await getArticlesFull();
+const categories = await getActiveCategories();
+
+// Lead story: newest article marked "featured", else the newest article.
+const lead = articles.find((a) => a.featured) ?? articles[0];
+const rest = articles.filter((a) => a !== lead);
+const grid = rest.slice(0, 6);
+const latest = rest.slice(6, 12);
 ---
 
 <BaseLayout>
-  <section class="container hero">
-    <p class="kicker">Coming soon</p>
-    <h1>Data-driven stories about India, in plain language.</h1>
-    <p class="lede">
-      {SITE.name} reads the official numbers (budgets, surveys, census tables, RBI releases) and explains
-      what they say. Every story links to its original source.
-    </p>
-  </section>
+  {lead ? (
+    <div class="container">
+      <h1 class="visually-hidden">{SITE.name}: {SITE.tagline}</h1>
+
+      <section class="top" aria-label="Top story">
+        <ArticleCard article={lead} variant="lead" headingLevel="h2" eager />
+      </section>
+
+      {grid.length > 0 && (
+        <section class="section" aria-labelledby="recent-heading">
+          <h2 id="recent-heading" class="section-title">Recent stories</h2>
+          <div class="grid">
+            {grid.map((a) => <ArticleCard article={a} />)}
+          </div>
+        </section>
+      )}
+
+      {latest.length > 0 && (
+        <section class="section" aria-labelledby="more-heading">
+          <h2 id="more-heading" class="section-title">More stories</h2>
+          <div class="list">
+            {latest.map((a) => <ArticleCard article={a} variant="compact" />)}
+          </div>
+        </section>
+      )}
+
+      <p class="all"><a href="/stories/">All stories →</a></p>
+
+      {categories.length > 0 && (
+        <section class="section" aria-labelledby="topics-heading">
+          <h2 id="topics-heading" class="section-title">Browse by topic</h2>
+          <ul class="topics">
+            {categories.map((c) => (
+              <li><a href={categoryUrl(c.slug)}>{c.name} <span class="meta">{c.count}</span></a></li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  ) : (
+    <section class="container hero">
+      <p class="kicker">Coming soon</p>
+      <h1>Data-driven stories about India, in plain language.</h1>
+      <p class="lede">
+        {SITE.name} reads the official numbers (budgets, surveys, census tables, RBI releases) and explains
+        what they say. Every story links to its original source.
+      </p>
+    </section>
+  )}
 </BaseLayout>
 
 <style>
+  .top {
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--rule);
+  }
+  .section {
+    margin-top: 2.5rem;
+  }
+  .section-title {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 0.6rem;
+    border-top: 3px solid var(--ink);
+    margin-bottom: 1.25rem;
+  }
+  .grid {
+    display: grid;
+    gap: 2rem 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  }
+  .all {
+    margin-top: 2rem;
+    font-weight: 700;
+  }
+  .topics {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .topics a {
+    display: inline-block;
+    padding: 0.4rem 0.8rem;
+    border: 1px solid var(--rule);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .topics a:hover {
+    border-color: var(--red);
+  }
   .hero {
     padding-block: 3rem;
   }
@@ -26,5 +124,12 @@ import { SITE } from '../config/site';
     font-size: 1.25rem;
     color: var(--ink-soft);
     max-width: var(--measure);
+  }
+  @media (min-width: 900px) {
+    .top :global(.lead) {
+      grid-template-columns: 1.35fr 1fr;
+      gap: 2rem;
+      align-items: center;
+    }
   }
 </style>

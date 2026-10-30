@@ -11,15 +11,6 @@ export const SITE = {
   contactEmail: '',
 };
 
-export const NAV = [
-  { label: 'Stories', href: '/stories/' },
-  { label: 'Economy', href: '/category/economy/' },
-  { label: 'Jobs', href: '/category/jobs-labour/' },
-  { label: 'Health', href: '/category/health/' },
-  { label: 'Education', href: '/category/education/' },
-  { label: 'States', href: '/category/states-cities/' },
-];
-
 export const FOOTER_LINKS = [
   { label: 'About', href: '/about/' },
   { label: 'Contact', href: '/contact/' },

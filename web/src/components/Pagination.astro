@@ -1,0 +1,29 @@
+---
+interface Props {
+  current: number
+  total: number
+  base: string // e.g. "/stories/" — page 1 is base, page n is base + "page/n/"
+}
+const {current, total, base} = Astro.props
+const href = (n: number) => (n === 1 ? base : `${base}page/${n}/`)
+---
+
+{total > 1 && (
+  <nav class="pagination" aria-label="Pagination">
+    {current > 1 ? <a href={href(current - 1)} rel="prev">← Newer</a> : <span />}
+    <span class="meta">Page {current} of {total}</span>
+    {current < total ? <a href={href(current + 1)} rel="next">Older →</a> : <span />}
+  </nav>
+)}
+
+<style>
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 2.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rule);
+    font-weight: 600;
+  }
+</style>

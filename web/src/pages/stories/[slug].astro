@@ -1,0 +1,257 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import ArticleCard from '../../components/ArticleCard.astro';
+import { getArticlesFull, type Article } from '../../lib/queries';
+import { renderBody, figureHTML } from '../../lib/portableText';
+import { imageUrl } from '../../lib/sanity';
+import { articleUrl, categoryUrl, formatDate, readingMinutes } from '../../lib/format';
+import { SITE } from '../../config/site';
+
+export async function getStaticPaths() {
+  const articles = await getArticlesFull();
+  return articles.map((article) => ({ params: { slug: article.slug }, props: { article } }));
+}
+
+const { article } = Astro.props as { article: Article };
+const all = await getArticlesFull();
+
+// Related: same category first, then the newest others; at most 3.
+const others = all.filter((a) => a._id !== article._id);
+const related = [
+  ...others.filter((a) => a.category?.slug === article.category?.slug),
+  ...others.filter((a) => a.category?.slug !== article.category?.slug),
+].slice(0, 3);
+
+const canonical = article.seo?.canonicalUrl || new URL(articleUrl(article.slug), SITE.url).href;
+const ogImage = article.featuredImage?.asset ? imageUrl(article.featuredImage, 1200, 630) : undefined;
+const showUpdated =
+  article.updatedAt && new Date(article.updatedAt).toDateString() !== new Date(article.publishedAt).toDateString();
+const sources = article.sources?.filter((s) => s.title) ?? [];
+---
+
+<BaseLayout
+  title={article.seo?.title || article.title}
+  description={article.seo?.description || article.summary}
+  canonical={canonical}
+  ogImage={ogImage}
+  ogType="article"
+  noindex={article.seo?.noindex}
+>
+  <Fragment slot="head">
+    <meta property="article:published_time" content={article.publishedAt} />
+    {article.updatedAt && <meta property="article:modified_time" content={article.updatedAt} />}
+    {article.category && <meta property="article:section" content={article.category.name} />}
+  </Fragment>
+
+  <article class="article">
+    <header class="container head">
+      <nav aria-label="Breadcrumb" class="crumbs">
+        <ol>
+          <li><a href="/">Home</a></li>
+          {article.category && <li><a href={categoryUrl(article.category.slug)}>{article.category.name}</a></li>}
+        </ol>
+      </nav>
+      <h1>{article.title}</h1>
+      <p class="summary">{article.summary}</p>
+      <p class="meta">
+        <time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time>
+        {showUpdated && (
+          <> · Updated <time datetime={article.updatedAt}>{formatDate(article.updatedAt!)}</time></>
+        )}
+        {' · '}{readingMinutes(article.body)} min read
+      </p>
+    </header>
+
+    {article.featuredImage?.asset && (
+      <div class="container lead-media" set:html={figureHTML(article.featuredImage, {
+        widths: [480, 760, 1040, 1400],
+        sizes: '(min-width: 1100px) 1040px, 100vw',
+        eager: true,
+      })} />
+    )}
+
+    <div class="container">
+      <div class="body prose" set:html={renderBody(article.body)} />
+
+      {(sources.length > 0 || article.methodology) && (
+        <aside class="notes prose" aria-label="Sources and methodology">
+          {sources.length > 0 && (
+            <section>
+              <h2>Sources</h2>
+              <ul>
+                {sources.map((s) => (
+                  <li>
+                    {s.url ? <a href={s.url} rel="noopener" target="_blank">{s.title}</a> : s.title}
+                    {s.publisher && <span class="meta"> — {s.publisher}</span>}
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {article.methodology && (
+            <section>
+              <h2>Methodology</h2>
+              {article.methodology.split(/\n{2,}/).map((para) => <p>{para}</p>)}
+            </section>
+          )}
+          <p class="meta correction">
+            Spotted an error? See our <a href="/editorial-policy/">corrections policy</a>.
+          </p>
+        </aside>
+      )}
+    </div>
+  </article>
+
+  {related.length > 0 && (
+    <section class="container related" aria-labelledby="related-heading">
+      <h2 id="related-heading" class="section-title">Related stories</h2>
+      <div class="grid">
+        {related.map((a) => <ArticleCard article={a} />)}
+      </div>
+    </section>
+  )}
+</BaseLayout>
+
+<style>
+  .head {
+    max-width: calc(var(--measure) + 2 * var(--gutter));
+  }
+  .crumbs ol {
+    list-style: none;
+    margin: 0 0 1rem;
+    padding: 0;
+    display: flex;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .crumbs li + li::before {
+    content: '/';
+    margin-right: 0.5rem;
+    color: var(--muted);
+  }
+  .crumbs a {
+    text-decoration: none;
+    color: var(--red);
+  }
+  .crumbs li:first-child a {
+    color: var(--muted);
+  }
+  .summary {
+    font-family: var(--font-serif);
+    font-size: clamp(1.15rem, 2.4vw, 1.35rem);
+    color: var(--ink-soft);
+    line-height: 1.45;
+  }
+  .lead-media {
+    max-width: calc(1040px + 2 * var(--gutter));
+    margin-block: 1.5rem 2rem;
+  }
+  .body,
+  .notes {
+    margin-inline: auto;
+  }
+  .head {
+    margin-inline: auto;
+  }
+
+  /* Article body typography (rendered HTML, so styles are global within .body) */
+  .body :global(p),
+  .body :global(li) {
+    font-size: 1.125rem;
+    line-height: 1.7;
+  }
+  .body :global(h2) {
+    margin-top: 2.25rem;
+  }
+  .body :global(h3) {
+    margin-top: 1.75rem;
+  }
+  .body :global(ul),
+  .body :global(ol) {
+    padding-left: 1.4rem;
+    margin: 0 0 1.25rem;
+  }
+  .body :global(li) {
+    margin-bottom: 0.4rem;
+  }
+  .body :global(blockquote) {
+    margin: 2rem 0;
+    padding: 0.25rem 0 0.25rem 1.25rem;
+    border-left: 4px solid var(--red);
+    font-family: var(--font-serif);
+    font-size: 1.3rem;
+    line-height: 1.45;
+    color: var(--ink-soft);
+  }
+  .body :global(a) {
+    color: var(--ink);
+    text-decoration-color: var(--red);
+    text-decoration-thickness: 2px;
+  }
+  :global(.figure) {
+    margin: 2rem 0;
+  }
+  :global(.figure img) {
+    width: 100%;
+    height: auto;
+    background: var(--paper-tint);
+  }
+  :global(.figure figcaption) {
+    margin-top: 0.6rem;
+    font-size: 0.875rem;
+    color: var(--ink-soft);
+  }
+  :global(.figure .credit) {
+    display: block;
+    color: var(--muted);
+  }
+  .lead-media :global(.figure) {
+    margin: 0;
+  }
+
+  .notes {
+    margin-top: 3rem;
+    padding-top: 1rem;
+    border-top: 3px solid var(--ink);
+    font-size: 0.95rem;
+  }
+  .notes h2 {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-top: 1.5rem;
+  }
+  .notes ul {
+    padding-left: 1.2rem;
+  }
+  .notes li {
+    margin-bottom: 0.5rem;
+  }
+  .correction {
+    margin-top: 1.5rem;
+  }
+
+  .related {
+    margin-top: 4rem;
+  }
+  .section-title {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding-top: 0.6rem;
+    border-top: 3px solid var(--ink);
+    margin-bottom: 1.25rem;
+  }
+  .grid {
+    display: grid;
+    gap: 2rem 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  }
+</style>

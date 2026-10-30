@@ -1,0 +1,26 @@
+---
+import ArticleCard from './ArticleCard.astro';
+import Pagination from './Pagination.astro';
+import type { ArticleCardData } from '../lib/queries';
+
+interface Props {
+  articles: ArticleCardData[];
+  current: number;
+  total: number;
+  base: string;
+}
+const { articles, current, total, base } = Astro.props;
+---
+
+<div class="grid">
+  {articles.map((a, i) => <ArticleCard article={a} headingLevel="h2" eager={current === 1 && i < 2} />)}
+</div>
+<Pagination current={current} total={total} base={base} />
+
+<style>
+  .grid {
+    display: grid;
+    gap: 2.25rem 1.5rem;
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  }
+</style>

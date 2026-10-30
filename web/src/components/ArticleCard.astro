@@ -1,0 +1,108 @@
+---
+import type {ArticleCardData} from '../lib/queries'
+import {imageSrcSet, imageUrl} from '../lib/sanity'
+import {articleUrl, categoryUrl, formatDate} from '../lib/format'
+
+interface Props {
+  article: ArticleCardData
+  variant?: 'lead' | 'standard' | 'compact'
+  headingLevel?: 'h2' | 'h3'
+  eager?: boolean
+}
+
+const {article, variant = 'standard', headingLevel = 'h3', eager = false} = Astro.props
+const Heading = headingLevel
+const href = articleUrl(article.slug)
+const img = article.featuredImage
+const ASPECT = 16 / 9
+const sizes =
+  variant === 'lead' ? '(min-width: 900px) 640px, 100vw' : '(min-width: 900px) 360px, (min-width: 600px) 50vw, 100vw'
+---
+
+<article class:list={['card', variant]}>
+  {img?.asset && variant !== 'compact' && (
+    <a href={href} class="media" tabindex="-1" aria-hidden="true">
+      <img
+        src={imageUrl(img, 720, Math.round(720 / ASPECT))}
+        srcset={imageSrcSet(img, [360, 540, 720, 1080, 1440], ASPECT)}
+        sizes={sizes}
+        alt=""
+        width="720"
+        height={Math.round(720 / ASPECT)}
+        loading={eager ? 'eager' : 'lazy'}
+        decoding="async"
+        fetchpriority={eager ? 'high' : undefined}
+      />
+    </a>
+  )}
+  <div class="text">
+    {article.category && (
+      <a class="kicker" href={categoryUrl(article.category.slug)}>{article.category.name}</a>
+    )}
+    <Heading class="title"><a href={href}>{article.title}</a></Heading>
+    {variant !== 'compact' && <p class="summary">{article.summary}</p>}
+    <p class="meta"><time datetime={article.publishedAt}>{formatDate(article.publishedAt)}</time></p>
+  </div>
+</article>
+
+<style>
+  .card {
+    display: grid;
+    gap: 0.75rem;
+    align-content: start;
+  }
+  .media {
+    display: block;
+    aspect-ratio: 16 / 9;
+    overflow: hidden;
+    background: var(--paper-tint);
+  }
+  .media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+  }
+  .card:hover .media img {
+    transform: scale(1.02);
+  }
+  .text {
+    display: grid;
+    gap: 0.35rem;
+  }
+  .title {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+  .title a {
+    text-decoration: none;
+  }
+  .title a:hover {
+    text-decoration: underline;
+  }
+  .summary {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 0.975rem;
+  }
+  .meta {
+    margin: 0;
+  }
+  .lead .title {
+    font-size: clamp(1.6rem, 3.6vw, 2.4rem);
+  }
+  .lead .summary {
+    font-family: var(--font-serif);
+    font-size: 1.15rem;
+  }
+  .compact {
+    padding-block: 0.9rem;
+    border-top: 1px solid var(--rule);
+  }
+  .compact .title {
+    font-size: 1.05rem;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .media img { transition: none; }
+  }
+</style>
