@@ -12,7 +12,8 @@
     "start": "sanity start",
     "export": "node -e \"const d=new Date().toISOString().slice(0,10);require(\\\"child_process\\\").execSync(\\\"npx sanity dataset export production ../exports/statwise-\\\"+d+\\\".tar.gz --overwrite\\\",{stdio:\\\"inherit\\\"})\"",
     "seed:categories": "sanity exec scripts/seed-categories.ts --with-user-token",
-    "test:drafts": "sanity exec scripts/test-draft-privacy.ts --with-user-token"
+    "test:drafts": "sanity exec scripts/test-draft-privacy.ts --with-user-token",
+    "test:publishing": "SITE=${SITE:-https://statwise.in} sanity exec scripts/test-publishing.ts --with-user-token"
   },
   "keywords": [
     "sanity"

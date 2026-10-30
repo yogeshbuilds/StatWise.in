@@ -69,6 +69,12 @@ Deploy hook:
   - That workflow either builds and deploys with Wrangler, or pushes an empty commit that Workers Builds picks up.
   - To be designed and tested in T032/T033, using a narrowly scoped token stored only in Sanity and GitHub secrets.
 
+## D003b — Workers Builds Deploy Hook (supersedes the GitHub Actions plan in D003a) — 2026-10-30 — Accepted
+
+- Cloudflare Workers Builds now offers **Deploy Hooks**: a secret URL that starts a build of `main` on POST. It allows 10 builds per minute per Worker, and triggers that arrive while a build is still queued are merged.
+- So the setup is now **Sanity webhook → Deploy Hook**. No GitHub token and no GitHub Actions are needed.
+- The hook URL is stored only in the Sanity webhook settings.
+
 ## D004 — Publish → deploy automation — 2026-10-30 — Accepted
 
 - One Sanity GROQ webhook (filter `_type in ["article", "category"]`) calls the Cloudflare deploy hook.
