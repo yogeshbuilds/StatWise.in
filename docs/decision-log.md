@@ -52,6 +52,17 @@ Preview decision:
 Deploy hook:
 - A secret URL; a POST to it starts a build. **It must be treated as a secret**: store it only in Sanity's webhook settings, never in code.
 
+## D003a — Hosting change: Cloudflare Workers (static assets) instead of Pages — 2026-10-30 — Accepted
+
+- Cloudflare's dashboard now creates **Workers** projects by default, and the owner's account showed only the Workers flow.
+- The site is served as **static assets on a Worker**, configured in `web/wrangler.jsonc`, with no Worker script.
+- Still free; the site is still static HTML.
+- Build settings: root `web`, build `npm run build`, deploy `npx wrangler deploy`. Node version comes from `web/.nvmrc`.
+- ⚠️ Workers Builds documents **no deploy hook**; builds start only on a git push. So D004 changes:
+  - The Sanity webhook will trigger a **GitHub Actions** workflow (`repository_dispatch`).
+  - That workflow either builds and deploys with Wrangler, or pushes an empty commit that Workers Builds picks up.
+  - To be designed and tested in T032/T033, using a narrowly scoped token stored only in Sanity and GitHub secrets.
+
 ## D004 — Publish → deploy automation — 2026-10-30 — Accepted
 
 - One Sanity GROQ webhook (filter `_type in ["article", "category"]`) calls the Cloudflare deploy hook.

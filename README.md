@@ -13,8 +13,8 @@ Articles are **text + images only**; charts and maps are made elsewhere and uplo
 |---|---|---|
 | Public website | Astro (static output) | `web/` |
 | Admin / CMS | Sanity Studio + Content Lake | `studio/` (Phase 2) |
-| Hosting | Cloudflare Pages | — |
-| Publish → deploy | Sanity webhook → Cloudflare deploy hook | — |
+| Hosting | Cloudflare Workers (static assets) | `web/wrangler.jsonc` |
+| Publish → deploy | Sanity webhook → GitHub Actions → Cloudflare (Phase 5) | — |
 
 Article content lives in Sanity, not in this repository. Publishing an article never requires Git.
 
@@ -30,15 +30,19 @@ npm run dev            # http://localhost:4321
 npm run build          # output in web/dist
 ```
 
-## Cloudflare Pages build settings
+## Cloudflare Workers build settings
+
+The site is served as static assets by a Cloudflare Worker (`web/wrangler.jsonc`).
 
 | Setting | Value |
 |---|---|
-| Framework preset | Astro |
-| Root directory | `web` |
+| Project / Worker name | `statwise` (must match `name` in `wrangler.jsonc`) |
+| Path (root directory) | `web` |
 | Build command | `npm run build` |
-| Build output directory | `dist` |
-| Environment variables | `NODE_VERSION=24`, plus the `PUBLIC_SANITY_*` values from `web/.env.example` |
+| Deploy command | `npx wrangler deploy` |
+| Non-production branch deploy command | `npx wrangler versions upload` |
+| API token | Let Cloudflare create one automatically |
+| Build variables | the `PUBLIC_SANITY_*` values from `web/.env.example` (Phase 2) |
 
 ## Secrets
 
