@@ -1,12 +1,73 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site';
+
+const effective = '30 October 2026';
 ---
 
-{/* Placeholder. The full policy is written in T031. */}
-<BaseLayout title="Editorial policy" noindex>
-  <article class="container prose">
+<BaseLayout
+  title="Editorial policy"
+  description={`How ${SITE.name} chooses sources, checks facts, makes charts and handles corrections.`}
+>
+  <article class="container prose policy">
     <p class="kicker">Policy</p>
     <h1>Editorial policy</h1>
-    <p>This page is being written and will be published before launch.</p>
+    <p class="meta">Effective {effective}</p>
+
+    <p>
+      {SITE.name} explains public data about India in plain language. These are the standards every story is held to.
+    </p>
+
+    <h2>Sources</h2>
+    <ul>
+      <li>We rely on <strong>primary, official sources</strong> wherever possible: government surveys and statistical releases, the Census, the Reserve Bank of India, budget documents, court and election records, and reports from recognised research institutions.</li>
+      <li>Every data-driven story lists its sources at the end, with links to the original dataset or report where one is available.</li>
+      <li>We say when figures are estimates, provisional, or drawn from a sample survey with a margin of error.</li>
+    </ul>
+
+    <h2>Methodology</h2>
+    <p>
+      When we calculate something ourselves (a growth rate, a per-person figure, a ranking), we explain how in a
+      methodology note on the story, including definitions, time periods and limitations. We avoid comparing
+      numbers that are not measured the same way, and we say so when the comparison is imperfect.
+    </p>
+
+    <h2>Charts and images</h2>
+    <p>
+      Charts, maps and graphics are made by {SITE.name} from the cited data unless the caption credits someone else.
+      Every image has a text description for readers who use screen readers.
+    </p>
+
+    <h2>Accuracy and corrections</h2>
+    <ul>
+      <li>Each story is checked against its sources before publication.</li>
+      <li>If we make a factual error, we correct it promptly and add a note at the end of the story saying what changed and when. We do not quietly rewrite figures.</li>
+      <li>When a story is updated with new data, it shows an “Updated” date alongside the original publication date.</li>
+      <li>To report an error, use the details on our <a href="/contact/">contact page</a>.</li>
+    </ul>
+
+    <h2>Independence</h2>
+    <p>
+      {SITE.name} is independent. We are not affiliated with any government body, political party or data
+      publisher, and we do not accept payment to cover, or not cover, any topic. We do not currently publish
+      sponsored content; if we ever do, it will be clearly labelled.
+    </p>
+
+    <h2>Use of software tools</h2>
+    <p>
+      We may use software, including AI assistants, to help with research, drafting, data processing and
+      chart-making. Every story is reviewed, fact-checked against its sources and approved by our editor before
+      it is published, and we take full responsibility for what we publish.
+    </p>
   </article>
 </BaseLayout>
+
+<style>
+  .policy h2 {
+    margin-top: 2rem;
+    font-size: 1.35rem;
+  }
+  .policy li {
+    margin-bottom: 0.6rem;
+  }
+</style>

@@ -1,12 +1,73 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
+import { SITE } from '../config/site';
+
+// Keep this page accurate: update it BEFORE adding analytics, ads, forms or any new third-party service.
+const effective = '30 October 2026';
 ---
 
-{/* Placeholder. The full policy is written in T031. */}
-<BaseLayout title="Privacy policy" noindex>
-  <article class="container prose">
+<BaseLayout title="Privacy policy" description={`How ${SITE.name} handles information about visitors.`}>
+  <article class="container prose policy">
     <p class="kicker">Policy</p>
     <h1>Privacy policy</h1>
-    <p>This page is being written and will be published before launch.</p>
+    <p class="meta">Effective {effective}</p>
+
+    <p>
+      {SITE.name} is a reading-only website. We do not ask you to create an account, we have no comments or
+      sign-up forms, and we do not sell or share personal information.
+    </p>
+
+    <h2>What we collect</h2>
+    <ul>
+      <li><strong>No tracking or analytics scripts.</strong> We do not use Google Analytics or any similar tool on this site.</li>
+      <li><strong>No cookies set by us.</strong> The site does not set cookies for tracking, advertising or personalisation.</li>
+      <li><strong>No forms.</strong> We do not collect names, email addresses or other details through the site.</li>
+    </ul>
+
+    <h2>Services that help deliver the site</h2>
+    <p>Like every website, ours relies on a few providers. When you visit, your browser connects to them directly:</p>
+    <ul>
+      <li>
+        <strong>Cloudflare</strong> hosts the website. To deliver pages and protect against abuse, Cloudflare
+        processes technical data such as your IP address, browser type and the pages requested, and may keep
+        short-term logs. See the <a href="https://www.cloudflare.com/privacypolicy/" rel="noopener" target="_blank">Cloudflare privacy policy</a>.
+      </li>
+      <li>
+        <strong>Sanity</strong> stores our articles and serves article images from <code>cdn.sanity.io</code>.
+        Loading an image sends a standard web request to Sanity. See the
+        <a href="https://www.sanity.io/legal/privacy" rel="noopener" target="_blank">Sanity privacy policy</a>.
+      </li>
+      <li>
+        <strong>Google Search Console</strong> tells us how the site appears in Google Search (for example, how
+        often a page is shown in results). It uses Google's own search data and does not add any code that
+        tracks you on our site.
+      </li>
+    </ul>
+
+    <h2>Links to other websites</h2>
+    <p>
+      Our stories link to the original data sources, such as government websites. Those sites have their own
+      privacy practices, which we do not control.
+    </p>
+
+    <h2>Advertising and future changes</h2>
+    <p>
+      We do not show ads today. If we add advertising (for example Google AdSense) or any measurement tool in
+      future, we will update this policy <em>before</em> doing so, explain what data those services use, and
+      provide any choices required by law.
+    </p>
+
+    <h2>Contact</h2>
+    <p>Questions about this policy can be sent using the details on our <a href="/contact/">contact page</a>.</p>
   </article>
 </BaseLayout>
+
+<style>
+  .policy h2 {
+    margin-top: 2rem;
+    font-size: 1.35rem;
+  }
+  .policy li {
+    margin-bottom: 0.6rem;
+  }
+</style>

@@ -24,6 +24,7 @@ const {
 } = Astro.props;
 const fullTitle = title ? `${title} | ${SITE.name}` : `${SITE.name} — ${SITE.tagline}`;
 const canonical = canonicalOverride || new URL(Astro.url.pathname, SITE.url).href;
+const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
 ---
 
 <!doctype html>
@@ -43,8 +44,10 @@ const canonical = canonicalOverride || new URL(Astro.url.pathname, SITE.url).hre
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
     <meta property="og:locale" content="en_IN" />
-    {ogImage && <meta property="og:image" content={ogImage} />}
-    <meta name="twitter:card" content={ogImage ? 'summary_large_image' : 'summary'} />
+    <meta property="og:image" content={shareImage} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta name="twitter:card" content="summary_large_image" />
     <slot name="head" />
   </head>
   <body>

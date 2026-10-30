@@ -4,6 +4,7 @@ import ArticleCard from '../components/ArticleCard.astro';
 import { SITE } from '../config/site';
 import { getActiveCategories, getArticlesFull } from '../lib/queries';
 import { categoryUrl } from '../lib/format';
+import { jsonLd, websiteSchema } from '../lib/structuredData';
 
 const articles = await getArticlesFull();
 const categories = await getActiveCategories();
@@ -16,6 +17,7 @@ const latest = rest.slice(6, 12);
 ---
 
 <BaseLayout>
+  <script slot="head" type="application/ld+json" set:html={jsonLd(websiteSchema())} />
   {lead ? (
     <div class="container">
       <h1 class="visually-hidden">{SITE.name}: {SITE.tagline}</h1>

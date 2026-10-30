@@ -6,6 +6,7 @@ import { renderBody, figureHTML } from '../../lib/portableText';
 import { imageUrl } from '../../lib/sanity';
 import { articleUrl, categoryUrl, formatDate, readingMinutes } from '../../lib/format';
 import { SITE } from '../../config/site';
+import { articleSchema, jsonLd } from '../../lib/structuredData';
 
 export async function getStaticPaths() {
   const articles = await getArticlesFull();
@@ -38,6 +39,7 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
   noindex={article.seo?.noindex}
 >
   <Fragment slot="head">
+    <script type="application/ld+json" set:html={jsonLd(articleSchema(article, canonical))} />
     <meta property="article:published_time" content={article.publishedAt} />
     {article.updatedAt && <meta property="article:modified_time" content={article.updatedAt} />}
     {article.category && <meta property="article:section" content={article.category.name} />}
@@ -72,6 +74,17 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
 
     <div class="container">
       <div class="body prose" set:html={renderBody(article.body)} />
+
+      {article.corrections?.length ? (
+        <aside class="corrections prose" aria-labelledby="corrections-heading">
+          <h2 id="corrections-heading">Corrections</h2>
+          <ul>
+            {article.corrections.map((c) => (
+              <li><time datetime={c.date}>{formatDate(c.date)}</time>: {c.note}</li>
+            ))}
+          </ul>
+        </aside>
+      ) : null}
 
       {(sources.length > 0 || article.methodology) && (
         <aside class="notes prose" aria-label="Sources and methodology">
@@ -234,6 +247,25 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
   }
   .correction {
     margin-top: 1.5rem;
+  }
+  .corrections {
+    margin: 2.5rem auto 0;
+    padding: 1rem 1.25rem;
+    background: var(--paper-tint);
+    border-left: 4px solid var(--red);
+    font-size: 0.95rem;
+  }
+  .corrections h2 {
+    font-family: var(--font-sans);
+    font-size: 0.8125rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin: 0 0 0.5rem;
+  }
+  .corrections ul {
+    margin: 0;
+    padding-left: 1.2rem;
   }
 
   .related {

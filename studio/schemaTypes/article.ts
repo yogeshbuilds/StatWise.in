@@ -109,6 +109,30 @@ export const article = defineType({
         'Optional but recommended. Explain calculations, definitions, time periods and limitations.',
     }),
     defineField({
+      name: 'corrections',
+      title: 'Corrections',
+      type: 'array',
+      group: 'sources',
+      description: 'If you fix a factual error after publishing, add a note here. It is shown at the end of the story.',
+      of: [
+        defineArrayMember({
+          type: 'object',
+          name: 'correction',
+          fields: [
+            defineField({name: 'date', title: 'Date', type: 'date', validation: (rule) => rule.required()}),
+            defineField({
+              name: 'note',
+              title: 'What changed',
+              type: 'text',
+              rows: 2,
+              validation: (rule) => rule.required(),
+            }),
+          ],
+          preview: {select: {title: 'note', subtitle: 'date'}},
+        }),
+      ],
+    }),
+    defineField({
       name: 'publishedAt',
       title: 'Publication date',
       type: 'datetime',

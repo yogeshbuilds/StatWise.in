@@ -25,6 +25,7 @@ export type Article = ArticleCardData & {
   body: any[]
   sources?: {_key: string; title: string; publisher?: string; url?: string}[]
   methodology?: string
+  corrections?: {_key: string; date: string; note: string}[]
   tags?: string[]
   oldSlugs?: string[]
   seo?: {title?: string; description?: string; canonicalUrl?: string; noindex?: boolean}
@@ -49,7 +50,7 @@ const once = <T>(key: string, run: () => Promise<T>) => {
 export function getArticlesFull() {
   return once('articles', () => fetchQuery<Article[]>(
     `*[${ELIGIBLE}] | order(publishedAt desc) {
-      ${CARD}, body, sources, methodology, tags, oldSlugs, seo
+      ${CARD}, body, sources, methodology, corrections, tags, oldSlugs, seo
     }`,
   ))
 }
