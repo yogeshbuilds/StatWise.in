@@ -1,6 +1,7 @@
 ---
 import BaseLayout from '../../layouts/BaseLayout.astro';
 import ArticleCard from '../../components/ArticleCard.astro';
+import AdSlot from '../../components/AdSlot.astro';
 import { getArticlesFull, type Article } from '../../lib/queries';
 import { renderBody, figureHTML } from '../../lib/portableText';
 import { imageUrl } from '../../lib/sanity';
@@ -28,6 +29,12 @@ const ogImage = article.featuredImage?.asset ? imageUrl(article.featuredImage, 1
 const showUpdated =
   article.updatedAt && new Date(article.updatedAt).toDateString() !== new Date(article.publishedAt).toDateString();
 const sources = article.sources?.filter((s) => s.title) ?? [];
+
+// The in-article ad goes after the 3rd paragraph, and only when at least 3 more blocks follow it,
+// so short stories never end on an ad.
+const body = article.body ?? [];
+const paragraphEnds = body.flatMap((b, i) => (b._type === 'block' && (b.style ?? 'normal') === 'normal' && !b.listItem ? [i + 1] : []));
+const split = paragraphEnds[2] && body.length - paragraphEnds[2] >= 3 ? paragraphEnds[2] : 0;
 ---
 
 <BaseLayout
@@ -37,6 +44,7 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
   ogImage={ogImage}
   ogType="article"
   noindex={article.seo?.noindex}
+  ads
 >
   <Fragment slot="head">
     <script type="application/ld+json" set:html={jsonLd(articleSchema(article, canonical))} />
@@ -73,7 +81,15 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
     )}
 
     <div class="container">
-      <div class="body prose" set:html={renderBody(article.body)} />
+      {split ? (
+        <>
+          <div class="body prose" set:html={renderBody(body.slice(0, split))} />
+          <AdSlot slot="inArticle" />
+          <div class="body prose" set:html={renderBody(body.slice(split))} />
+        </>
+      ) : (
+        <div class="body prose" set:html={renderBody(body)} />
+      )}
 
       {article.corrections?.length ? (
         <aside class="corrections prose" aria-labelledby="corrections-heading">
@@ -112,6 +128,7 @@ const sources = article.sources?.filter((s) => s.title) ?? [];
           </p>
         </aside>
       )}
+      <AdSlot slot="afterArticle" />
     </div>
   </article>
 

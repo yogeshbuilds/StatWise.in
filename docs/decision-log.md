@@ -112,7 +112,8 @@ Alternatives considered:
   - `statwise.in` is a Worker custom domain, with a Google Trust Services certificate.
   - `www.statwise.in` redirects to the root with a 301, through the Cloudflare "Redirect from WWW to Root" rule.
   - http redirects to https.
-- AI bots: search and agent crawlers allowed, **training crawlers blocked** via Cloudflare managed robots.txt (Content-Signal `ai-train=no`). Googlebot and Bingbot are unaffected.
+- AI bots: search and agent crawlers allowed, **training crawlers blocked** via Cloudflare managed robots.txt (Content-Signal `ai-train=no`).
+  - **Correction 2026-10-31:** the "Training: Block" choice also turned on the managed WAF rule *Block AI training crawlers (BOBA-199)*, which blocked the real Googlebot (AS15169) with a 403. Search Console reported "Blocked due to access forbidden (403)". Fix: allow Googlebot in AI Crawl Control, or switch that block off and rely on robots.txt.
 
 Original notes:
 
@@ -130,3 +131,18 @@ Original notes:
 - **URLs:** articles at `/stories/<slug>/`, categories at `/category/<slug>/`, listing at `/stories/`.
 - **Categories:** see `docs/categories.md`. A category page is generated only once it has at least one published article, to avoid thin pages.
 - **Launch content:** Claude writes 2–3 demo articles from real public data, with sources cited. The owner reviews them before launch.
+
+## D008 — Advertising: Google AdSense, built in but off — 2026-10-31 — Accepted
+
+- AdSense code ships **dormant**. Everything is driven by `ADS` in `web/src/config/site.ts`:
+  - `client` empty means no ad code anywhere, `ads.txt` is a comment only, and the privacy policy says "no ads".
+  - `client` set adds the `google-adsense-account` meta tag on every page, a valid `ads.txt`, and the advertising section of the privacy policy (Google's required disclosures and opt-out links).
+  - The slot IDs place ads.
+- **Placement:** manual ad units, not Auto ads, and on **story pages only**:
+  - one after the 3rd paragraph, only when at least 3 blocks follow it;
+  - one after sources and methodology, before "Related stories".
+  - None on the home, listing, category, policy, about, contact or 404 pages.
+  - Each slot reserves 280 px of height, to avoid the layout jumping.
+- **Consent (EEA, UK, Switzerland):** AdSense's own free "European regulations" message (a Google-certified CMP). No extra script.
+- **When to apply:** see `docs/adsense-readiness.md`. Content volume is the gate, not the code.
+- **2026-11-02:** publisher ID `ca-pub-7825172645589464` set. The meta tag is on all pages, `ads.txt` is live, the ad script loads on story pages, and the privacy policy is updated (effective 2 November 2026). Ad slot IDs are still empty, so no ads show until AdSense approves the site and the two units are created.

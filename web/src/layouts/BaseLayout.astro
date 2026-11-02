@@ -2,7 +2,7 @@
 import '../styles/global.css';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
-import { SITE } from '../config/site';
+import { ADS, SITE } from '../config/site';
 import { isDraftPreview } from '../lib/sanity';
 
 interface Props {
@@ -12,6 +12,8 @@ interface Props {
   canonical?: string;
   ogImage?: string;
   ogType?: 'website' | 'article';
+  /** Load the AdSense script. Only article pages pass this; policy, contact and listing pages stay ad-free. */
+  ads?: boolean;
 }
 
 const {
@@ -21,6 +23,7 @@ const {
   canonical: canonicalOverride,
   ogImage,
   ogType = 'website',
+  ads = false,
 } = Astro.props;
 // Search results show roughly 60 characters of a title and 160 of a description.
 // Long article titles skip the site-name suffix; long descriptions are cut at a word boundary.
@@ -56,6 +59,15 @@ const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta name="twitter:card" content="summary_large_image" />
+    {ADS.client && <meta name="google-adsense-account" content={ADS.client} />}
+    {ads && ADS.client && !isDraftPreview && (
+      <script
+        is:inline
+        async
+        src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS.client}`}
+        crossorigin="anonymous"
+      ></script>
+    )}
     <slot name="head" />
   </head>
   <body>

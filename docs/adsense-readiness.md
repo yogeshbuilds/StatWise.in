@@ -8,7 +8,7 @@
 |---|---|
 | Applicant is 18+ | ✅ (owner) |
 | You can edit the site's HTML (to add the ad code and `ads.txt`) | ✅ Code in GitHub, via `web/` |
-| High-quality, original content that attracts an audience | ⚠️ **Only 3 articles**, all demos, and no audience yet |
+| High-quality, original content that attracts an audience | ⚠️ **7 articles** (4 by the owner, 3 AI-assisted demos) as of 2026-10-31, and Google is still indexing |
 | Complies with Program policies (no ads on non-content pages, easy navigation, no pop-ups or forced redirects) | ✅ Static site, clear menus, no pop-ups |
 
 ## What to do before applying
@@ -31,17 +31,19 @@
 5. **Wait for indexing and some organic traffic.**
    - There is no official traffic minimum. Still, a site Google has indexed, with a few weeks of history, tends to review better than a brand-new domain.
 
-## When you are ready to turn ads on (do these together)
+## How the site is wired (2026-10-31, D008)
 
-- [ ] **Update the privacy policy before adding any ad code.** It must say that third-party vendors, including Google, use cookies to serve ads based on prior visits, and link to opt-outs: Google [Ads Settings](https://adssettings.google.com) and aboutads.info. See [AdSense required disclosures](https://support.google.com/adsense/answer/1348695).
-- [ ] **Consent for Europe and the UK.** Google requires a Google-certified consent tool (CMP) for visitors from the EEA, UK and Switzerland. AdSense's built-in **Privacy & messaging → European regulations message** is free.
-- [ ] **`ads.txt`.** After approval, add `web/public/ads.txt` with the line AdSense gives you (`google.com, pub-XXXXXXXXXXXXXXXX, DIRECT, f08c47fec0942fa0`).
-- [ ] **Ad slots.** Planned positions that don't block reading:
-  - one in-article slot after the 3rd paragraph,
-  - one below the article, before "Related stories",
-  - none above the headline, and none on policy, contact or 404 pages.
-  - Use **manual ad units** rather than Auto ads at first, so the layout stays clean.
-- [ ] Record the decision and any recurring changes in `docs/decision-log.md`.
+All switches live in `ADS` in `web/src/config/site.ts`. Commit and push, and the site rebuilds.
+
+| Step | What you do | What the site does |
+|---|---|---|
+| 1. Sign up | Create an AdSense account at adsense.google.com with your Google account and add the site `statwise.in`. | — |
+| 2. Verify and apply | Copy your publisher ID (`ca-pub-…`) into `ADS.client`. In AdSense choose **Meta tag** (or **ads.txt**) verification, then **Request review**. | Adds the `google-adsense-account` meta tag on every page and a valid `/ads.txt`, and shows the advertising section in the privacy policy. |
+| 3. Consent message | AdSense → **Privacy & messaging → European regulations** → create and publish the message (free Google-certified CMP). | Nothing to change; it loads with the ad script. |
+| 4. After approval | AdSense → **Ads → By ad unit → Display ads**: create two responsive units, *in-article* and *after-article*. Paste each `data-ad-slot` number into `ADS.slots`. | Story pages load the ad script and show the two slots. Other pages stay ad-free. |
+| 5. Keep Auto ads off | AdSense → Ads → By site → statwise.in → Auto ads: **off**. | The layout stays as designed. |
+
+Also change the `effective` date in `web/src/pages/privacy-policy.astro` in the same commit as step 2.
 
 ## Revenue planning (assumption, not a promise)
 
