@@ -47,7 +47,10 @@ const shareImage = ogImage || new URL('/og-default.png', SITE.url).href;
     <meta name="description" content={metaDescription} />
     <link rel="canonical" href={canonical} />
     {(noindex || isDraftPreview) && <meta name="robots" content="noindex" />}
+    <link rel="icon" href="/favicon.ico" sizes="48x48" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
     <meta name="theme-color" content="#e3121b" />
     <meta property="og:site_name" content={SITE.name} />
     <meta property="og:type" content={ogType} />
