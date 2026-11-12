@@ -44,7 +44,10 @@ const geminiModel = () => prop('GEMINI_MODEL', 'gemini-2.5-flash')
 
 function doPost(e) {
   // Telegram calls the web app URL with ?secret=…; anything else is ignored.
-  if (!e || !e.parameter || e.parameter.secret !== prop('WEBHOOK_SECRET')) return ok()
+  if (!e || !e.parameter || e.parameter.secret !== prop('WEBHOOK_SECRET')) {
+    console.log('Ignored: secret in the URL does not match WEBHOOK_SECRET. Run setupWebhook again.')
+    return ok()
+  }
   let update
   try {
     update = JSON.parse(e.postData.contents)
@@ -54,7 +57,10 @@ function doPost(e) {
   // Telegram retries a request that takes long; handle each update once.
   const cache = CacheService.getScriptCache()
   const seenKey = `update-${update.update_id}`
-  if (cache.get(seenKey)) return ok()
+  if (cache.get(seenKey)) {
+    console.log(`Ignored: update ${update.update_id} already handled (Telegram retry).`)
+    return ok()
+  }
   cache.put(seenKey, '1', 21600)
 
   const msg = update.message
@@ -65,7 +71,10 @@ function doPost(e) {
     send(chatId, `Your chat ID is <code>${chatId}</code>. Add it as the script property OWNER_CHAT_ID, then send /help.`)
     return ok()
   }
-  if (chatId !== owner) return ok() // only the owner can use the bot
+  if (chatId !== owner) {
+    console.log(`Ignored: message from chat ${chatId}, but OWNER_CHAT_ID is ${owner}.`)
+    return ok()
+  }
 
   const lock = LockService.getScriptLock()
   if (!lock.tryLock(5000)) {
@@ -647,7 +656,9 @@ function telegram(method, payload) {
 
 function send(chatId, html) {
   // Telegram messages are capped at 4,096 characters.
-  return telegram('sendMessage', {chat_id: chatId, text: html.slice(0, 4000), parse_mode: 'HTML', disable_web_page_preview: true})
+  const result = telegram('sendMessage', {chat_id: chatId, text: html.slice(0, 4000), parse_mode: 'HTML', disable_web_page_preview: true})
+  if (!result.ok) console.log(`Telegram did not send the message: ${JSON.stringify(result)}`)
+  return result
 }
 
 function escapeHtml(s) {
@@ -712,6 +723,11 @@ function setupWebhook() {
 /** Troubleshooting: shows what Telegram last got back from the web app (see last_error_message). */
 function checkWebhook() {
   Logger.log(JSON.stringify(telegram('getWebhookInfo', {}), null, 2))
+}
+
+/** Troubleshooting: sends a test message to OWNER_CHAT_ID. If it arrives, the token and chat ID are right. */
+function testMessage() {
+  Logger.log(JSON.stringify(send(prop('OWNER_CHAT_ID'), '✅ Test message from the StatWise bot.')))
 }
 
 /** Optional: run once to get the /today list on Telegram every morning at about 8 am. */
