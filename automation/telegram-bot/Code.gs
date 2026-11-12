@@ -709,6 +709,11 @@ function setupWebhook() {
   Logger.log(JSON.stringify(result))
 }
 
+/** Troubleshooting: shows what Telegram last got back from the web app (see last_error_message). */
+function checkWebhook() {
+  Logger.log(JSON.stringify(telegram('getWebhookInfo', {}), null, 2))
+}
+
 /** Optional: run once to get the /today list on Telegram every morning at about 8 am. */
 function installMorningDigest() {
   ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'morningDigest').forEach((t) => ScriptApp.deleteTrigger(t))
