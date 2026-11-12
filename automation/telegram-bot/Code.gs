@@ -92,6 +92,7 @@ function note(text) {
 function handle(msg) {
   const chatId = String(msg.chat.id)
   if (msg.photo) return handlePhoto(chatId, msg)
+  if (msg.document) return handleDocument(chatId, msg)
   const text = (msg.text || '').trim()
   const [command, ...rest] = text.split(/\s+/)
   const arg = rest.join(' ').trim()
@@ -129,13 +130,15 @@ function handle(msg) {
 
 const HELP = [
   '<b>StatWise story bot</b>',
-  '• Send a PIB release link to draft a story',
+  '• Send a source link to draft a story',
   '• /today: releases with numbers, then /draft 3',
   '• /drafts: drafts waiting for review',
   '• /publish slug: put a draft live',
   '• /discard slug: delete a draft',
   '• Photo with caption <code>slug | alt text</code>: use your own image',
-  '• Can’t read a link? Copy the release text, paste it here (several messages are fine), then /go. /clear starts over',
+  '• Any official, research or NGO link works: government, RBI, World Bank, journals, surveys…',
+  '• PDF report? Send the file with its link as the caption',
+  '• Can’t read a link? Copy the text, paste it here (several messages are fine), then /go. /clear starts over',
   '• /ping: check the connections',
 ].join('\n')
 
@@ -143,27 +146,31 @@ const HELP = [
 
 function draftFromUrl(chatId, url) {
   send(chatId, `Reading ${escapeHtml(url)} …`)
-  const res = UrlFetchApp.fetch(url, {muteHttpExceptions: true, followRedirects: true})
-  if (res.getResponseCode() !== 200) {
-    // PIB blocks Google's servers, so fall back to text the owner copies from the page.
+  let source
+  try {
+    source = readSource(url)
+  } catch (err) {
+    // Some sites (PIB among them) block Google's servers: fall back to text the owner copies from the page.
     clearPasted()
-    CacheService.getScriptCache().put('pasted-url', url.replace('PressReleaseIframePage', 'PressReleasePage'), 21600)
+    CacheService.getScriptCache().put('pasted-url', cleanUrl(url), 21600)
     return send(chatId, [
-      `The site won’t let the bot read that page (${res.getResponseCode()}). I’ve kept the link as the source.`,
+      `I couldn’t read that page (${escapeHtml(err.message)}). I’ve kept the link as the source.`,
       '',
       '1. Open the link on your phone',
       '2. Long-press the text → <b>Select all</b> → <b>Copy</b>',
       '3. Paste it here (long text may arrive as several messages, that’s fine)',
       '4. Send /go',
+      '',
+      'For a PDF, download it and send the file here instead, with the link as the caption.',
     ].join('\n'))
   }
-  return draftFromSource(chatId, parseRelease(res.getContentText('UTF-8'), url))
+  return draftFromSource(chatId, source)
 }
 
 // Pasted release text is collected across messages (Telegram splits long pastes) until /go.
 function addPasted(chatId, text, url) {
   const cache = CacheService.getScriptCache()
-  if (url && !cache.get('pasted-url')) cache.put('pasted-url', url.replace('PressReleaseIframePage', 'PressReleasePage'), 21600)
+  if (url && !cache.get('pasted-url')) cache.put('pasted-url', cleanUrl(url), 21600)
   const body = url ? text.replace(url, '').trim() : text
   const all = [cache.get('pasted-text') || '', body].filter(Boolean).join('\n\n').slice(0, 90000)
   cache.put('pasted-text', all, 21600)
@@ -178,13 +185,14 @@ function clearPasted() {
 function draftFromPasted(chatId) {
   const cache = CacheService.getScriptCache()
   const text = cache.get('pasted-text')
-  if (!text) return send(chatId, 'Nothing pasted yet. Paste the release text first, then /go.')
+  if (!text) return send(chatId, 'Nothing pasted yet. Paste the source text first, then /go.')
   const source = parsePasted(text, cache.get('pasted-url') || '')
   clearPasted()
   return draftFromSource(chatId, source)
 }
 
-// Text copied from a PIB page starts with the ministry, then the title, then "Posted On: …".
+// Copied text: a PIB page starts with the ministry, then the title, then "Posted On: …". For other sites the
+// title and publisher are left for the writer to read from the text (and are checked against it).
 function parsePasted(text, url) {
   const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
   const head = lines.slice(0, 8)
@@ -198,26 +206,33 @@ function parsePasted(text, url) {
     publisher,
     title,
     posted: postedLine.replace(/^Posted On:?\s*/i, ''),
-    text: (cut > 0 ? text.slice(0, cut) : text).slice(0, 30000),
+    text: (cut > 0 ? text.slice(0, cut) : text).slice(0, MAX_SOURCE_CHARS),
   }
 }
 
 function draftFromSource(chatId, source) {
-  if (source.text.length < 300) throw new Error('The release text is too short to write a story from.')
-  send(chatId, `Writing a draft from “${escapeHtml(source.title || 'pasted text')}” …`)
+  if (source.text.length < 300) throw new Error('The source text is too short to write a story from.')
+  source.kind = sourceKind(source.url)
+  send(chatId, `Writing a draft from “${escapeHtml(source.title || 'pasted text')}” (${source.kind.label}) …`)
 
   const categories = sanityQuery('*[_type == "category" && !(_id in path("drafts.**"))] | order(name asc){_id, name}')
   const story = writeStory(source, categories.map((c) => c.name))
   const warnings = (story.warnings || []).slice()
+  if (source.kind.warning) warnings.unshift(source.kind.warning)
 
-  // The source link always comes from what we fetched, never from the model.
+  // The source link always comes from what we read, never from the model. The title and publisher come from the
+  // page when it states them; otherwise from the writer, but only if they actually appear in the source text.
+  const title = source.title || story.sourceTitle || ''
+  const publisher = source.publisher || story.sourcePublisher || ''
+  if (!source.title && title && !mentions(source.text, title)) warnings.push(`Source title “${title}” isn’t in the text; check it.`)
+  if (!source.publisher && publisher && !mentions(source.text, publisher)) warnings.push(`Publisher “${publisher}” isn’t in the text; check it.`)
   const sources = []
   if (source.url) {
     sources.push({
       _type: 'sourceLink',
       _key: key(),
-      title: source.title || story.sourceTitle || 'Official release',
-      publisher: [source.publisher, 'PIB'].filter(Boolean).join(' (') + (source.publisher ? ')' : ''),
+      title: title || 'Source document',
+      publisher: /pib\.gov\.in/.test(source.url) && publisher && !/PIB/.test(publisher) ? `${publisher} (PIB)` : publisher || hostOf(source.url),
       url: source.url,
     })
   } else {
@@ -247,7 +262,7 @@ function draftFromSource(chatId, source) {
       asset: {_type: 'reference', _ref: asset},
       alt: story.chart.alt,
       caption: story.chart.caption,
-      credit: `Source: ${source.publisher || story.sourceTitle || 'official release'}. Chart: StatWise.in`,
+      credit: `Source: ${[publisher || hostOf(source.url), title].filter(Boolean).join(', ')}. Chart: StatWise.in`,
     }
   } catch (err) {
     warnings.push(`No chart (${err.message}). Send a photo with caption “${slug} | alt text”.`)
@@ -287,13 +302,113 @@ function draftFromSource(chatId, source) {
 
 // ---------- sources ----------
 
-function fetchRelease(url) {
+const MAX_SOURCE_CHARS = 120000
+
+// Reads any web page or PDF and returns {url, title, publisher, posted, text}.
+function readSource(url) {
   const res = UrlFetchApp.fetch(url, {muteHttpExceptions: true, followRedirects: true})
-  if (res.getResponseCode() !== 200) {
-    throw new Error(`The site answered ${res.getResponseCode()}. Paste the release text instead (first line: the link).`)
+  const code = res.getResponseCode()
+  if (code !== 200) throw new Error(`the site answered ${code}`)
+  const type = String(res.getHeaders()['Content-Type'] || res.getHeaders()['content-type'] || '')
+  if (/pdf/i.test(type) || /\.pdf($|\?)/i.test(url)) {
+    return {url: cleanUrl(url), title: '', publisher: '', posted: '', text: pdfToText(res.getBlob()).slice(0, MAX_SOURCE_CHARS)}
   }
   const html = res.getContentText('UTF-8')
-  return parseRelease(html, url)
+  if (/pib\.gov\.in/i.test(url)) return parseRelease(html, url)
+  const page = parsePage(html, url)
+  // Journal pages often show only the abstract; read the full PDF when the page links one.
+  if (page.pdfUrl) {
+    try {
+      const pdf = UrlFetchApp.fetch(page.pdfUrl, {muteHttpExceptions: true, followRedirects: true})
+      if (pdf.getResponseCode() === 200 && /pdf/i.test(String(pdf.getHeaders()['Content-Type'] || ''))) {
+        page.text = `${page.text}\n\n${pdfToText(pdf.getBlob())}`.slice(0, MAX_SOURCE_CHARS)
+      }
+    } catch (err) {
+      // the abstract page alone is still usable
+    }
+  }
+  if (page.text.length < 300) throw new Error('the page has almost no text (it may need a browser to load)')
+  return page
+}
+
+// Any HTML page: title and publisher from standard meta tags, text from <article>/<main> or the whole body.
+function parsePage(html, url) {
+  const meta = (name) => {
+    const re = new RegExp(`<meta[^>]+(?:name|property)=["']${name}["'][^>]*content=["']([^"']+)["']|<meta[^>]+content=["']([^"']+)["'][^>]*(?:name|property)=["']${name}["']`, 'i')
+    const m = html.match(re)
+    return m ? htmlToText(m[1] || m[2]).trim() : ''
+  }
+  const tag = (t) => {
+    const m = html.match(new RegExp(`<${t}[^>]*>([\\s\\S]*?)</${t}>`, 'i'))
+    return m ? m[1] : ''
+  }
+  const clean = (h) => htmlToText(h.replace(/<(nav|header|footer|aside|form|noscript|svg)[\s\S]*?<\/\1>/gi, ' '))
+  // Prefer the longest of <article>/<main> (pages can have small <article> cards); else the whole body.
+  const candidates = [tag('article'), tag('main')].map(clean).filter((t) => t.length > 500).sort((x, y) => y.length - x.length)
+  const text = candidates[0] || clean(tag('body') || html)
+  const authors = [...html.matchAll(/<meta[^>]+name=["']citation_author["'][^>]*content=["']([^"']+)["']/gi)].map((m) => m[1]).slice(0, 3)
+  return {
+    url: cleanUrl(url),
+    title: meta('citation_title') || meta('og:title') || htmlToText(tag('title')).replace(/\s+/g, ' ').trim() || htmlToText(tag('h1')).trim(),
+    publisher: meta('citation_journal_title') || meta('citation_publisher') || meta('og:site_name') || meta('DC.publisher') || '',
+    posted: meta('citation_publication_date') || meta('article:published_time') || meta('citation_date') || meta('date') || '',
+    authors,
+    pdfUrl: meta('citation_pdf_url'),
+    text: [authors.length ? `Authors: ${authors.join('; ')}` : '', text].filter(Boolean).join('\n\n').slice(0, MAX_SOURCE_CHARS),
+  }
+}
+
+// PDF → text by converting a temporary copy to a Google Doc (needs the Drive API service; see README).
+function pdfToText(blob) {
+  if (typeof Drive === 'undefined') throw new Error('PDFs need the Drive API service: Services → + → Drive API → Add')
+  const file = Drive.Files.create({name: `statwise-tmp-${Date.now()}`, mimeType: 'application/vnd.google-apps.document'}, blob.setContentType('application/pdf'), {ocrLanguage: 'en'})
+  try {
+    return DocumentApp.openById(file.id).getBody().getText()
+  } finally {
+    DriveApp.getFileById(file.id).setTrashed(true)
+  }
+}
+
+// How much to trust a source, from its web address. Unknown sites aren't rejected, only flagged.
+function sourceKind(url) {
+  const host = hostOf(url)
+  const extra = (PropertiesService.getScriptProperties().getProperty('TRUSTED_DOMAINS') || '').split(',').map((d) => d.trim()).filter(Boolean)
+  const is = (list) => list.some((d) => host === d || host.endsWith('.' + d))
+  if (!url) return {label: 'pasted text, no link', type: 'unknown', warning: 'No source link: add the original link in Studio.'}
+  if (/\.(gov|nic)\.in$|\.gov$|^gov\.|\.gov\.[a-z]{2}$/.test(host) || is(['rbi.org.in', 'sebi.gov.in', 'mospi.gov.in', 'data.gov.in', 'censusindia.gov.in', 'eci.gov.in', 'niti.gov.in', 'iitm.ac.in'])) {
+    return {label: 'government', type: 'official'}
+  }
+  if (is(['worldbank.org', 'imf.org', 'un.org', 'undp.org', 'unicef.org', 'who.int', 'ilo.org', 'fao.org', 'oecd.org', 'adb.org', 'wto.org', 'unesco.org', 'unfpa.org', 'wfp.org', 'iea.org', 'irena.org', 'bis.org'])) {
+    return {label: 'international organisation', type: 'official'}
+  }
+  if (is(['arxiv.org', 'ssrn.com', 'papers.ssrn.com', 'medrxiv.org', 'biorxiv.org', 'researchsquare.com', 'preprints.org', 'osf.io'])) {
+    return {label: 'preprint', type: 'preprint', warning: 'Preprint: not yet peer-reviewed. The story must say so.'}
+  }
+  if (/\.(ac\.in|edu|ac\.uk)$/.test(host) || is(['doi.org', 'nature.com', 'thelancet.com', 'sciencedirect.com', 'springer.com', 'link.springer.com', 'wiley.com', 'tandfonline.com', 'jstor.org', 'nber.org', 'plos.org', 'bmj.com', 'nih.gov', 'epw.in', 'icrier.org', 'ncaer.org', 'cprindia.org', 'ceew.in', 'teriin.org', 'cseindia.org', 'prsindia.org', 'pewresearch.org', 'ourworldindata.org', 'idrc.ca', 'cmie.com', 'asercentre.org', 'pratham.org', 'oxfamindia.org', 'jpal.org', 'povertyactionlab.org']) || is(extra)) {
+    return {label: 'research / institution', type: 'research'}
+  }
+  if (/(^|\.)wikipedia\.org$/.test(host)) {
+    return {label: 'Wikipedia', type: 'unknown', warning: 'Wikipedia is not a primary source. Use the report it cites as the source instead.'}
+  }
+  return {label: `other site: ${host}`, type: 'unknown', warning: `${host} isn’t on the list of known official or research sources. Check it’s authoritative before publishing (add trusted sites to TRUSTED_DOMAINS).`}
+}
+
+function hostOf(url) {
+  const m = String(url || '').match(/^https?:\/\/([^/:?#]+)/i)
+  return m ? m[1].toLowerCase().replace(/^www\./, '') : ''
+}
+
+function cleanUrl(url) {
+  return String(url).replace('PressReleaseIframePage', 'PressReleasePage').replace(/[)\].,]+$/, '')
+}
+
+// Loose “does the text mention this?” check for titles and publishers.
+function mentions(text, phrase) {
+  const norm = (x) => String(x).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim()
+  const t = norm(text)
+  const words = norm(phrase).split(' ').filter((w) => w.length > 3)
+  if (!words.length) return true
+  return words.filter((w) => t.includes(w)).length / words.length >= 0.7
 }
 
 // Pulls the ministry, title, date and main text out of a PIB release page.
@@ -311,12 +426,13 @@ function parseRelease(html, url) {
     publisher: byId('MinistryName'),
     title: byId('Titleh2'),
     posted: byId('PrDateTime').replace(/^Posted On:\s*/i, ''),
-    text: [byId('Titleh2'), byId('Subtitleh3'), htmlToText(main)].filter(Boolean).join('\n\n').slice(0, 30000),
+    text: [byId('Titleh2'), byId('Subtitleh3'), htmlToText(main)].filter(Boolean).join('\n\n').slice(0, MAX_SOURCE_CHARS),
   }
 }
 
 function htmlToText(html) {
   return html
+    .replace(/<!--[\s\S]*?-->/g, ' ')
     .replace(/<(script|style)[\s\S]*?<\/\1>/gi, ' ')
     .replace(/<br\s*\/?>/gi, '\n')
     .replace(/<\/(p|div|tr|li|h\d)>/gi, '\n')
@@ -352,13 +468,14 @@ function todayList() {
 
 // ---------- writing (Gemini) ----------
 
-const STYLE = `You write for StatWise.in, a minimalist Indian news site that explains official public data.
+const STYLE = `You write for StatWise.in, a minimalist Indian news site that explains public data from authentic sources: government, regulators, international organisations, surveys, research institutions, NGOs and peer-reviewed papers.
 Rules:
 - Use ONLY facts and numbers that appear in the SOURCE TEXT. Never add outside facts, figures, quotes, causes or forecasts.
 - You may calculate differences, percentage changes and shares from source numbers. List EVERY calculated number in "calculations" as plain arithmetic on numbers copied from the source (or on earlier calculation results), and explain them briefly in "methodology". A number that is neither in the source nor in "calculations" will be rejected.
 - Indian conventions: ₹ with lakh/crore and Indian digit grouping (₹2,31,290 crore). Never convert to US dollars. British/Indian spelling (modernise, programme).
 - Plain, neutral English. Short sentences. No hype words (record-breaking, massive, robust, landmark) unless quoting the source's own claim, and then attribute it ("the ministry said").
-- Attribute claims and intentions to the source ("the ministry said", "the government expects").
+- Attribute claims and intentions to the source by name ("the ministry said", "the World Bank estimates", "the study found").
+- Match the source type (given below): for government data say it is official; for a survey, give who ran it, when, and the sample size if stated; for research, say it is a study, name the institution, and describe its scope and limits as the paper states them; for a preprint, say it has not been peer-reviewed; for an NGO or think tank, name it and avoid presenting its findings as official statistics. Projections and estimates must be called projections or estimates.
 - Body: 350–600 words of Markdown using only: paragraphs, "## " headings, "- " bullets, "1. " numbered lists, **bold**.
 - Body structure: 2 opening paragraphs (what happened with the key number in bold; why it matters), "## What the <main keyword> data shows" with a short list of the key figures, one more "## " section with context from the source, "## What the numbers don’t tell us" (gaps and limits of the release, no speculation), "## The bottom line" (2–3 sentences).
 - Title: under 65 characters, contains the key number. Summary: 120–200 characters.
@@ -377,7 +494,8 @@ const STORY_SCHEMA = {
     body: {type: 'STRING'},
     methodology: {type: 'STRING', description: 'Max 80 words. Which release, and each calculation with its arithmetic.'},
     tags: {type: 'ARRAY', items: {type: 'STRING'}},
-    sourceTitle: {type: 'STRING', description: 'Title of the release as written in the source'},
+    sourceTitle: {type: 'STRING', description: 'Title of the source document exactly as written in it'},
+    sourcePublisher: {type: 'STRING', description: 'Organisation that published it, exactly as named in the source'},
     chart: {
       type: 'OBJECT',
       properties: {
@@ -415,7 +533,8 @@ function writeStory(source, categoryNames) {
   const prompt = [
     STYLE,
     `CATEGORIES: ${categoryNames.join('; ')}`,
-    `SOURCE (${source.publisher || 'unknown publisher'}, ${source.posted || 'date unknown'}):`,
+    `SOURCE TYPE: ${(source.kind && source.kind.label) || 'unknown'}`,
+    `SOURCE (${[source.publisher || 'publisher not stated', source.title, source.posted || 'date not stated', source.fileName].filter(Boolean).join(' · ')}):`,
     source.text,
   ].join('\n\n')
   const res = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}:generateContent`, {
@@ -616,6 +735,22 @@ function discard(slug) {
   if (!draft) return `No draft with slug ${escapeHtml(slug)}.`
   sanityMutate([{delete: {id: draft}}])
   return `🗑️ Draft ${escapeHtml(slug)} deleted.`
+}
+
+// A PDF or text file sent to the bot (e.g. a report downloaded on the phone). Caption: the link where it's published.
+function handleDocument(chatId, msg) {
+  const doc = msg.document
+  const url = cleanUrl(((msg.caption || '').match(/https?:\/\/\S+/) || [''])[0])
+  if (doc.file_size > 20 * 1024 * 1024) return send(chatId, 'That file is over 20 MB, the most a bot can download. Send the link instead.')
+  send(chatId, `Reading ${escapeHtml(doc.file_name || 'the file')} …`)
+  const file = telegram('getFile', {file_id: doc.file_id}).result
+  const blob = UrlFetchApp.fetch(`https://api.telegram.org/file/bot${prop('TELEGRAM_TOKEN')}/${file.file_path}`).getBlob()
+  let text
+  if (/pdf/i.test(doc.mime_type) || /\.pdf$/i.test(doc.file_name || '')) text = pdfToText(blob)
+  else if (/^text\//i.test(doc.mime_type)) text = blob.getDataAsString('UTF-8')
+  else return send(chatId, 'Send a PDF or a text file, or paste the text.')
+  const title = (doc.file_name || '').replace(/\.[a-z0-9]+$/i, '').replace(/[_-]+/g, ' ')
+  return draftFromSource(chatId, {url, title: '', publisher: '', posted: '', text: text.slice(0, MAX_SOURCE_CHARS), fileName: title})
 }
 
 function handlePhoto(chatId, msg) {

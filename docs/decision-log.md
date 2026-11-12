@@ -161,6 +161,7 @@ Original notes:
   - The source link is taken from the fetched page, never from the model.
   - Only the owner's chat ID is served.
 - **Why not fully automatic:** both recent story batches had errors that a source check caught, including a wrong historical series and source links to unrelated releases. Google's spam policies and AdSense also penalise unreviewed, scaled AI content.
+- **Sources (2026-11-12):** any authentic source, not just PIB. That covers government, regulators, international organisations, surveys, research institutions, NGOs and papers, as web pages, PDFs (via Drive conversion) or pasted text. The bot labels each by its web address (official / research / preprint / unknown); preprints and unknown sites get a warning. PIB blocks Google's servers, so PIB stories use the paste route.
 - **Cost:** ₹0. Apps Script, the Telegram Bot API, the Gemini free tier and QuickChart are all free at this volume.
 - **Rejected:**
   - Google Workspace Flows: needs a paid Workspace plan.

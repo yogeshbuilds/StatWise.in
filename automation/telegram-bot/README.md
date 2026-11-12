@@ -3,7 +3,7 @@
 Draft, check and publish stories from your phone. The bot runs free on Google Apps Script, so no laptop is needed after setup.
 
 ```
-Telegram  ──▶  Apps Script (Code.gs)  ──▶  reads the PIB release
+Telegram  ──▶  Apps Script (Code.gs)  ──▶  reads the source (web page, PDF or pasted text)
                                       ──▶  Gemini writes the draft in house style
                                       ──▶  code checks every number against the release
                                       ──▶  QuickChart draws the featured chart
@@ -19,7 +19,8 @@ Nothing goes live without your `/publish`.
 |---|---|
 | `/today` | Today's PIB releases with numbers in the headline, numbered |
 | `/draft 3` | Drafts release 3 from that list |
-| a PIB link | Drafts that release |
+| any source link | Drafts from that page: government, RBI, World Bank, UN agencies, surveys, think tanks, NGOs, journals, preprints |
+| a PDF file, caption = its link | Drafts from a report or paper you downloaded on your phone |
 | pasted release text, then `/go` | Drafts from text you copied (for pages the bot can't read); several messages are fine |
 | `/clear` | Throws away pasted text and starts over |
 | `/drafts` | Drafts waiting for review |
@@ -69,7 +70,15 @@ Open the preview, fix anything in Studio if needed (it works in a phone browser)
 
 Optional: `GEMINI_MODEL`. The default is `gemini-2.5-flash`; if `/ping` says the model isn't found, enter the current *Flash* model name shown in AI Studio.
 
-### 3. Start the bot
+Optional property: `TRUSTED_DOMAINS`, a comma-separated list of extra sites you trust, e.g. `ihds.umd.edu, indiaspend.com`. Unknown sites aren't blocked, only flagged for you to check.
+
+### 3. Turn on PDF reading
+
+Research papers and reports are often PDFs. The bot reads them by converting a temporary copy with Google Drive, which it deletes straight away.
+
+In the editor's left sidebar, click **Services ➕ → Drive API → Add**.
+
+### 4. Start the bot
 
 1. In the editor toolbar, choose the function **`setupPolling`** and click **▷ Run**.
    - Allow the permissions Google asks for. It warns the app isn't verified, because it's your own script: click **Advanced → Go to StatWise bot (unsafe) → Allow**.
@@ -96,6 +105,19 @@ It doesn't print your secrets.
 
 Paste the new `Code.gs` and click **Save**. That's it: the timer always runs the saved code.
 
+## Which sources work
+
+| Source | What the bot does |
+|---|---|
+| Government sites (`.gov.in`, `.nic.in`, RBI, SEBI, MoSPI…) | Labels the story as official data |
+| International organisations (World Bank, IMF, UN agencies, WHO, ILO, OECD, ADB…) | Labels it official and attributes estimates |
+| Research and institutions (`.ac.in`, `.edu`, journals, NBER, NCAER, CPR, CEEW, PRS, Our World in Data, ASER…) | Calls it a study, names the institution, and gives its scope and sample |
+| Preprints (arXiv, SSRN, medRxiv…) | Adds a warning and says in the story that the work isn't peer-reviewed |
+| Wikipedia | Warns you to use the report Wikipedia cites instead |
+| Any other site | Drafts it, but warns you to check the site is authoritative |
+
+Journal pages that link their full PDF are read in full, not just the abstract. Sites that block Google's servers (PIB does) need the copy-paste route: send the link, paste the text, then `/go`.
+
 ## Limits and safety
 
 - **Free quotas:**
@@ -111,5 +133,7 @@ Paste the new `Code.gs` and click **Save**. That's it: the timer always runs the
   - This uses about 15 minutes of the 90-minute daily Apps Script timer allowance, leaving plenty for drafting.
   - It's used instead of a webhook because Apps Script web apps answer with redirects, which Telegram treats as failures.
 - **The source link always comes from the page the bot read, not from the model.** This prevents wrong-release links.
+- **The source title and publisher are checked against the source text.** They come from the page's own tags when it has them; otherwise the writer's version is accepted only if it appears in the text.
+- **Scanned PDFs** are read with Google's OCR, which can misread figures. The number check compares against that text, so check scanned tables by eye.
 - **If a token leaks,** revoke it where you created it (BotFather `/revoke`, AI Studio or sanity.io/manage), make a new one and update the script property.
 - **What the bot can't judge:** whether a release is worth a story, and whether the angle is fair. That's your 10 minutes.
