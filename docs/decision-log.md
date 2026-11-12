@@ -146,3 +146,20 @@ Original notes:
 - **Consent (EEA, UK, Switzerland):** AdSense's own free "European regulations" message (a Google-certified CMP). No extra script.
 - **When to apply:** see `docs/adsense-readiness.md`. Content volume is the gate, not the code.
 - **2026-11-02:** publisher ID `ca-pub-7825172645589464` set. The meta tag is on all pages, `ads.txt` is live, the ad script loads on story pages, and the privacy policy is updated (effective 2 November 2026). Ad slot IDs are still empty, so no ads show until AdSense approves the site and the two units are created.
+
+## D009 — Phone publishing: Telegram bot on Google Apps Script — 2026-11-12 — Accepted
+
+- **Goal:** publish from a phone in about 15 minutes a day, with no laptop.
+- **Choice:** a Telegram bot running as a free Google Apps Script web app (`automation/telegram-bot/`).
+  - Gemini writes the drafts; QuickChart renders the featured chart.
+  - Drafts are saved to Sanity through the HTTP API with an Editor token kept in Script properties.
+- **Guardrails:**
+  - The bot only creates **drafts**. Publishing needs the owner's `/publish`, and drafts with warnings need `/publish slug checked`.
+  - Every number in the story must be in the source, or come from a calculation the model declares and the bot re-computes.
+  - The source link is taken from the fetched page, never from the model.
+  - Only the owner's chat ID is served, and the webhook needs a secret.
+- **Why not fully automatic:** both recent story batches had errors that a source check caught, including a wrong historical series and source links to unrelated releases. Google's spam policies and AdSense also penalise unreviewed, scaled AI content.
+- **Cost:** ₹0. Apps Script, the Telegram Bot API, the Gemini free tier and QuickChart are all free at this volume.
+- **Rejected:**
+  - Google Workspace Flows: needs a paid Workspace plan.
+  - WhatsApp: the business API costs money and needs verification.

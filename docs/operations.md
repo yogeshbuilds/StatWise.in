@@ -58,6 +58,10 @@ npx sanity dataset import ../exports/statwise-YYYY-MM-DD.tar.gz production --rep
 - To test a restore safely, import into a new dataset first: `npx sanity dataset create restore-test`, then import with `restore-test` instead of `production`.
 - `data.ndjson` is plain JSON lines, so it can be converted for another CMS if needed.
 
+## Publishing from a phone (Telegram bot)
+
+Send a PIB link, or `/today`, to the StatWise Telegram bot. It writes a checked **draft** and replies with a preview link and anything to check; `/publish slug` puts it live. Setup, commands and limits: [`automation/telegram-bot/README.md`](../automation/telegram-bot/README.md). Decision: D009.
+
 ## Utility scripts (in `studio/`)
 
 | Command | What it does |

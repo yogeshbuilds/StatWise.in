@@ -8,6 +8,7 @@ Articles are **text + images only**; charts and maps are made elsewhere and uplo
 - **Categories:** [`docs/categories.md`](docs/categories.md)
 - **Launch checklist / AdSense readiness:** [`docs/launch-checklist.md`](docs/launch-checklist.md), [`docs/adsense-readiness.md`](docs/adsense-readiness.md)
 - **Operations (backup, restore, links):** [`docs/operations.md`](docs/operations.md)
+- **Phone publishing bot (Telegram + Apps Script):** [`automation/telegram-bot/`](automation/telegram-bot/README.md)
 
 ## Stack
 
