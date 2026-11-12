@@ -115,10 +115,15 @@ function handle(msg) {
       return send(chatId, publish(arg))
     case '/discard':
       return send(chatId, discard(arg))
+    case '/go':
+      return draftFromPasted(chatId)
+    case '/clear':
+      clearPasted()
+      return send(chatId, 'Cleared the pasted text.')
   }
   const url = (text.match(/https?:\/\/\S+/) || [])[0]
-  if (url && text.length < 400) return draftFromUrl(chatId, url)
-  if (text.length >= 400) return draftFromText(chatId, text, url)
+  if (url && text.length < 200) return draftFromUrl(chatId, url)
+  if (text.length >= 200) return addPasted(chatId, text, url)
   return send(chatId, HELP)
 }
 
@@ -130,7 +135,7 @@ const HELP = [
   '• /publish slug: put a draft live',
   '• /discard slug: delete a draft',
   '• Photo with caption <code>slug | alt text</code>: use your own image',
-  '• Paste release text if a link can’t be read',
+  '• Can’t read a link? Copy the release text, paste it here (several messages are fine), then /go. /clear starts over',
   '• /ping: check the connections',
 ].join('\n')
 
@@ -138,13 +143,63 @@ const HELP = [
 
 function draftFromUrl(chatId, url) {
   send(chatId, `Reading ${escapeHtml(url)} …`)
-  const source = fetchRelease(url)
+  const res = UrlFetchApp.fetch(url, {muteHttpExceptions: true, followRedirects: true})
+  if (res.getResponseCode() !== 200) {
+    // PIB blocks Google's servers, so fall back to text the owner copies from the page.
+    clearPasted()
+    CacheService.getScriptCache().put('pasted-url', url.replace('PressReleaseIframePage', 'PressReleasePage'), 21600)
+    return send(chatId, [
+      `The site won’t let the bot read that page (${res.getResponseCode()}). I’ve kept the link as the source.`,
+      '',
+      '1. Open the link on your phone',
+      '2. Long-press the text → <b>Select all</b> → <b>Copy</b>',
+      '3. Paste it here (long text may arrive as several messages, that’s fine)',
+      '4. Send /go',
+    ].join('\n'))
+  }
+  return draftFromSource(chatId, parseRelease(res.getContentText('UTF-8'), url))
+}
+
+// Pasted release text is collected across messages (Telegram splits long pastes) until /go.
+function addPasted(chatId, text, url) {
+  const cache = CacheService.getScriptCache()
+  if (url && !cache.get('pasted-url')) cache.put('pasted-url', url.replace('PressReleaseIframePage', 'PressReleasePage'), 21600)
+  const body = url ? text.replace(url, '').trim() : text
+  const all = [cache.get('pasted-text') || '', body].filter(Boolean).join('\n\n').slice(0, 90000)
+  cache.put('pasted-text', all, 21600)
+  const link = cache.get('pasted-url')
+  return send(chatId, `📥 Got ${all.length.toLocaleString('en-IN')} characters${link ? '' : ' (no source link yet: send the link too)'}. Paste more, or send /go to write the draft.`)
+}
+
+function clearPasted() {
+  CacheService.getScriptCache().removeAll(['pasted-text', 'pasted-url'])
+}
+
+function draftFromPasted(chatId) {
+  const cache = CacheService.getScriptCache()
+  const text = cache.get('pasted-text')
+  if (!text) return send(chatId, 'Nothing pasted yet. Paste the release text first, then /go.')
+  const source = parsePasted(text, cache.get('pasted-url') || '')
+  clearPasted()
   return draftFromSource(chatId, source)
 }
 
-function draftFromText(chatId, text, url) {
-  const body = url ? text.replace(url, '').trim() : text
-  return draftFromSource(chatId, {url: url || '', title: '', publisher: '', posted: '', text: body})
+// Text copied from a PIB page starts with the ministry, then the title, then "Posted On: …".
+function parsePasted(text, url) {
+  const lines = text.split('\n').map((l) => l.trim()).filter(Boolean)
+  const head = lines.slice(0, 8)
+  const pubIndex = head.findIndex((l) => /^(Ministry|Department|Cabinet|Prime Minister|President|Vice[- ]President|NITI|PIB|Office of|Election Commission)/i.test(l) && l.length < 90)
+  const publisher = pubIndex >= 0 ? head[pubIndex] : ''
+  const title = pubIndex >= 0 && head[pubIndex + 1] && !/^Posted On/i.test(head[pubIndex + 1]) ? head[pubIndex + 1] : ''
+  const postedLine = lines.find((l) => /^Posted On/i.test(l)) || ''
+  const cut = text.search(/\(Release ID:|\bVisitor Counter\b/i)
+  return {
+    url,
+    publisher,
+    title,
+    posted: postedLine.replace(/^Posted On:?\s*/i, ''),
+    text: (cut > 0 ? text.slice(0, cut) : text).slice(0, 30000),
+  }
 }
 
 function draftFromSource(chatId, source) {
@@ -281,7 +336,7 @@ function htmlToText(html) {
 
 function todayList() {
   const res = UrlFetchApp.fetch(CONFIG.rss, {muteHttpExceptions: true, followRedirects: true})
-  if (res.getResponseCode() !== 200) return `PIB feed answered ${res.getResponseCode()}.`
+  if (res.getResponseCode() !== 200) return `PIB won’t let the bot read its feed (${res.getResponseCode()}). Open pib.gov.in → All Releases on your phone instead, then send me a link.`
   const items = [...res.getContentText('UTF-8').matchAll(/<item><title>([\s\S]*?)<\/title><link>([\s\S]*?)<\/link>/g)].map((m) => ({
     title: htmlToText(m[1]),
     url: m[2].trim(),
@@ -686,7 +741,11 @@ function ping() {
     }
   }
   return [
-    check('PIB', () => `${UrlFetchApp.fetch(CONFIG.rss, {muteHttpExceptions: true}).getResponseCode()}`),
+    check('PIB', () => {
+      const code = UrlFetchApp.fetch(CONFIG.rss, {muteHttpExceptions: true}).getResponseCode()
+      if (code !== 200) throw new Error(`answered ${code}: PIB blocks the bot’s server. Links still work as the source; paste the text and send /go`)
+      return 'readable'
+    }),
     check('Sanity', () => `${sanityQuery('count(*[_type == "article"])')} articles`),
     check('Gemini', () => {
       const r = UrlFetchApp.fetch(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}`, {headers: {'x-goog-api-key': prop('GEMINI_API_KEY')}, muteHttpExceptions: true})

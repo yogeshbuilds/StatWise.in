@@ -20,7 +20,8 @@ Nothing goes live without your `/publish`.
 | `/today` | Today's PIB releases with numbers in the headline, numbered |
 | `/draft 3` | Drafts release 3 from that list |
 | a PIB link | Drafts that release |
-| pasted release text (first line: the link) | Drafts from the text, if the link can't be read |
+| pasted release text, then `/go` | Drafts from text you copied (for pages the bot can't read); several messages are fine |
+| `/clear` | Throws away pasted text and starts over |
 | `/drafts` | Drafts waiting for review |
 | `/publish slug` | Puts the draft live |
 | `/publish slug checked` | Same, after you've checked the warnings |
@@ -100,7 +101,12 @@ Paste the new `Code.gs` and click **Save**. That's it: the timer always runs the
 - **Free quotas:**
   - Apps Script runs are capped at 6 minutes each. A draft takes about 20–60 seconds.
   - Gemini's free tier and QuickChart (a public chart service) are rate-limited. 2–3 stories a day is well within the limits.
-- **PIB pages are read from Google's servers.** If PIB blocks them, the bot says so; paste the release text instead.
+- **PIB blocks Google's servers (403).** This was confirmed by `/ping` on 2026-11-12, so the bot can't read PIB pages or the `/today` feed itself. Instead:
+  1. Send the link. The bot keeps it as the source.
+  2. Open the release on your phone → long-press → **Select all** → **Copy**, and paste it into the chat.
+  3. Send `/go`.
+
+  The bot reads the ministry, title and date from the copied text. Other official sites that allow the bot work with the link alone.
 - **Replies take up to a minute,** because the bot checks Telegram every minute.
   - This uses about 15 minutes of the 90-minute daily Apps Script timer allowance, leaving plenty for drafting.
   - It's used instead of a webhook because Apps Script web apps answer with redirects, which Telegram treats as failures.
