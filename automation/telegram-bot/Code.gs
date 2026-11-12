@@ -12,8 +12,9 @@
  *   /ping                 check PIB, Gemini, Sanity and the chart service
  *
  * Secrets live in Project Settings → Script properties (never in this file):
- *   TELEGRAM_TOKEN, OWNER_CHAT_ID, WEBHOOK_SECRET, GEMINI_API_KEY, SANITY_TOKEN, WEB_APP_URL
+ *   TELEGRAM_TOKEN, GEMINI_API_KEY, SANITY_TOKEN, OWNER_CHAT_ID
  * Optional: GEMINI_MODEL, SANITY_PROJECT_ID, SANITY_DATASET
+ * Run setupPolling once; the bot then checks Telegram every minute (no web app deployment needed).
  *
  * Setup steps: automation/telegram-bot/README.md
  */
@@ -40,65 +41,49 @@ const sanityProject = () => prop('SANITY_PROJECT_ID', 'mpsmehrh')
 const sanityDataset = () => prop('SANITY_DATASET', 'production')
 const geminiModel = () => prop('GEMINI_MODEL', 'gemini-2.5-flash')
 
-// ---------- Telegram entry point ----------
+// ---------- Telegram: check for new messages every minute ----------
 
-function doPost(e) {
-  // Telegram calls the web app URL with ?secret=…; anything else is ignored.
-  if (!e || !e.parameter || e.parameter.secret !== prop('WEBHOOK_SECRET')) {
-    note('Ignored: secret in the URL does not match WEBHOOK_SECRET. Run setupWebhook again.')
-    return ok()
-  }
-  let update
+// Runs every minute (installed by setupPolling). Fetches new Telegram messages and handles them in order.
+// Polling avoids Apps Script web apps, whose redirect responses make Telegram webhooks unreliable.
+function poll() {
+  const lock = LockService.getScriptLock()
+  if (!lock.tryLock(1000)) return // the previous run is still drafting; pick up new messages next minute
   try {
-    update = JSON.parse(e.postData.contents)
-  } catch (err) {
-    return ok()
+    const props = PropertiesService.getScriptProperties()
+    const offset = Number(props.getProperty('LAST_UPDATE_ID') || 0) + 1
+    const res = telegram('getUpdates', {offset, timeout: 0, allowed_updates: ['message']})
+    if (!res.ok) return note(`Telegram getUpdates failed: ${res.description}`)
+    for (const update of res.result) {
+      // Mark it done first, so a failure never makes the bot repeat the same message forever.
+      props.setProperty('LAST_UPDATE_ID', String(update.update_id))
+      processUpdate(update)
+    }
+  } finally {
+    lock.releaseLock()
   }
-  // Telegram retries a request that takes long; handle each update once.
-  const cache = CacheService.getScriptCache()
-  const seenKey = `update-${update.update_id}`
-  if (cache.get(seenKey)) {
-    note(`Ignored: update ${update.update_id} already handled (Telegram retry).`)
-    return ok()
-  }
-  cache.put(seenKey, '1', 21600)
+}
 
+function processUpdate(update) {
   const msg = update.message
-  if (!msg || !msg.chat) return ok()
+  if (!msg || !msg.chat) return
   const chatId = String(msg.chat.id)
   const owner = PropertiesService.getScriptProperties().getProperty('OWNER_CHAT_ID')
   if (!owner) {
     note(`No OWNER_CHAT_ID yet; told chat ${chatId} its ID.`)
     send(chatId, `Your chat ID is <code>${chatId}</code>. Add it as the script property OWNER_CHAT_ID, then send /help.`)
-    return ok()
+    return
   }
-  if (chatId !== owner) {
-    note(`Ignored: message from chat ${chatId}, but OWNER_CHAT_ID is ${owner}.`)
-    return ok()
-  }
-
-  const lock = LockService.getScriptLock()
-  if (!lock.tryLock(5000)) {
-    send(chatId, 'Still working on the previous request. Try again in a minute.')
-    return ok()
-  }
+  if (chatId !== owner) return note(`Ignored: message from chat ${chatId}, but OWNER_CHAT_ID is ${owner}.`)
   try {
-    note(`Handling message from the owner: ${(msg.text || 'photo').slice(0, 40)}`)
+    note(`Handling: ${(msg.text || 'photo').slice(0, 40)}`)
     handle(msg)
   } catch (err) {
     note(`Error: ${err.message}`)
     send(chatId, `⚠️ ${escapeHtml(err.message || String(err))}`)
-  } finally {
-    lock.releaseLock()
   }
-  return ok()
 }
 
-function ok() {
-  return ContentService.createTextOutput('ok')
-}
-
-// Remembers the last thing doPost did, for diagnose().
+// Remembers the last thing the bot did, for diagnose().
 function note(text) {
   console.log(text)
   PropertiesService.getScriptProperties().setProperty('LAST_EVENT', `${new Date().toISOString()} ${text}`)
@@ -714,45 +699,33 @@ function ping() {
 
 // ---------- one-time setup (run from the Apps Script editor) ----------
 
-/** Run once after deploying as a web app: connects Telegram to this script. */
-function setupWebhook() {
-  const props = PropertiesService.getScriptProperties()
-  let secret = props.getProperty('WEBHOOK_SECRET')
-  if (!secret) {
-    secret = Utilities.getUuid().replace(/-/g, '')
-    props.setProperty('WEBHOOK_SECRET', secret)
-  }
-  const webAppUrl = props.getProperty('WEB_APP_URL') || ScriptApp.getService().getUrl()
-  if (!webAppUrl) throw new Error('Deploy the script as a web app first (Deploy → New deployment → Web app).')
-  if (!/\/exec$/.test(webAppUrl)) throw new Error(`Use the deployed URL ending in /exec (got ${webAppUrl}). Set it as the script property WEB_APP_URL.`)
-  const result = telegram('setWebhook', {url: `${webAppUrl}?secret=${secret}`, allowed_updates: ['message'], drop_pending_updates: true})
-  Logger.log(JSON.stringify(result))
-}
-
-/** Troubleshooting: shows what Telegram last got back from the web app (see last_error_message). */
-function checkWebhook() {
-  Logger.log(JSON.stringify(telegram('getWebhookInfo', {}), null, 2))
+/** Run once: switches Telegram to polling and checks for messages every minute. Safe to run again. */
+function setupPolling() {
+  Logger.log(JSON.stringify(telegram('deleteWebhook', {drop_pending_updates: true})))
+  ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'poll').forEach((t) => ScriptApp.deleteTrigger(t))
+  ScriptApp.newTrigger('poll').timeBased().everyMinutes(1).create()
+  Logger.log('Done. The bot now checks Telegram every minute. Send it /start.')
 }
 
 /** Troubleshooting: run from the editor and read the log. Secrets are not printed. */
 function diagnose() {
   const p = PropertiesService.getScriptProperties().getProperties()
   const lines = []
-  ;['TELEGRAM_TOKEN', 'GEMINI_API_KEY', 'SANITY_TOKEN', 'WEB_APP_URL', 'WEBHOOK_SECRET', 'OWNER_CHAT_ID'].forEach((k) =>
+  ;['TELEGRAM_TOKEN', 'GEMINI_API_KEY', 'SANITY_TOKEN', 'OWNER_CHAT_ID'].forEach((k) =>
     lines.push(`${k}: ${p[k] ? (k === 'OWNER_CHAT_ID' ? p[k] : `set (${p[k].length} chars)`) : 'MISSING'}`),
   )
-  const unknown = Object.keys(p).filter((k) => !/^(TELEGRAM_TOKEN|GEMINI_API_KEY|SANITY_TOKEN|WEB_APP_URL|WEBHOOK_SECRET|OWNER_CHAT_ID|GEMINI_MODEL|SANITY_PROJECT_ID|SANITY_DATASET|LAST_EVENT)$/.test(k))
+  const known = /^(TELEGRAM_TOKEN|GEMINI_API_KEY|SANITY_TOKEN|OWNER_CHAT_ID|GEMINI_MODEL|SANITY_PROJECT_ID|SANITY_DATASET|LAST_EVENT|LAST_UPDATE_ID|WEB_APP_URL|WEBHOOK_SECRET)$/
+  const unknown = Object.keys(p).filter((k) => !known.test(k))
   if (unknown.length) lines.push(`Unexpected property names (typo?): ${unknown.join(', ')}`)
+  const triggers = ScriptApp.getProjectTriggers().filter((t) => t.getHandlerFunction() === 'poll').length
+  lines.push(`Every-minute trigger installed: ${triggers > 0 ? 'yes' : 'NO, run setupPolling'}`)
   if (p.TELEGRAM_TOKEN) {
     const me = telegram('getMe', {})
     lines.push(`Bot: ${me.ok ? '@' + me.result.username : 'token rejected: ' + me.description}`)
     const hook = telegram('getWebhookInfo', {}).result || {}
-    const hookSecret = ((hook.url || '').match(/secret=([^&]+)/) || [])[1]
-    lines.push(`Webhook URL matches WEB_APP_URL: ${!!hook.url && !!p.WEB_APP_URL && hook.url.indexOf(p.WEB_APP_URL) === 0}`)
-    lines.push(`Webhook secret matches WEBHOOK_SECRET: ${!!hookSecret && hookSecret === p.WEBHOOK_SECRET}`)
-    lines.push(`Telegram last error: ${hook.last_error_message || 'none'}; waiting updates: ${hook.pending_update_count}`)
+    lines.push(`Old webhook still set: ${hook.url ? 'YES, run setupPolling' : 'no'}`)
   }
-  lines.push(`Last thing doPost did: ${p.LAST_EVENT || 'nothing recorded (deploy a New version with this code, then message the bot)'}`)
+  lines.push(`Last thing the bot did: ${p.LAST_EVENT || 'nothing yet'}`)
   Logger.log('\n' + lines.join('\n'))
 }
 

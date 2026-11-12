@@ -68,27 +68,32 @@ Open the preview, fix anything in Studio if needed (it works in a phone browser)
 
 Optional: `GEMINI_MODEL`. The default is `gemini-2.5-flash`; if `/ping` says the model isn't found, enter the current *Flash* model name shown in AI Studio.
 
-### 3. Deploy
+### 3. Start the bot
 
-1. **Deploy → New deployment → Select type: Web app.**
-2. Set **Execute as:** *Me*, and **Who has access:** *Anyone*.
-   - "Anyone" is needed so Telegram can reach it.
-   - The bot ignores any request without its secret, and any chat that isn't yours.
-3. Click **Deploy** and allow the permissions.
-   - Google warns that the app isn't verified, because it's your own script.
-   - Click **Advanced → Go to StatWise bot (unsafe) → Allow**.
-4. Copy the **Web app URL** (it ends in `/exec`) and add it as the script property `WEB_APP_URL`.
-5. In the editor toolbar, choose the function **`setupWebhook`** and click **Run**.
-   - The log should show `"ok":true`. This also creates `WEBHOOK_SECRET`.
-6. In Telegram, open your bot and send `/start`. It replies with your **chat ID**.
+1. In the editor toolbar, choose the function **`setupPolling`** and click **▷ Run**.
+   - Allow the permissions Google asks for. It warns the app isn't verified, because it's your own script: click **Advanced → Go to StatWise bot (unsafe) → Allow**.
+   - This removes any old webhook and makes the bot check Telegram **every minute**.
+2. In Telegram, send `/start` to your bot. **Within a minute** it replies with your **chat ID**.
    - Add it as the script property `OWNER_CHAT_ID`.
-7. Send `/ping`. All four lines should be ✅.
+3. Send `/ping`. All four lines should be ✅.
+
+There's no web app to deploy: the bot runs on a timer.
 
 Optional: run **`installMorningDigest`** once to get the `/today` list every morning at about 8 am.
 
+### If it doesn't reply
+
+Run **`diagnose`** from the editor and read the log. It shows:
+- which properties are set,
+- whether the every-minute timer is installed,
+- the bot's name,
+- the last thing the bot did, e.g. "Ignored: message from chat 123, but OWNER_CHAT_ID is 456".
+
+It doesn't print your secrets.
+
 ### Updating the code later
 
-Paste the new `Code.gs`, save, then **Deploy → Manage deployments → ✏️ Edit → Version: New version → Deploy**. The web app URL stays the same; skip this step and Telegram keeps running the old version.
+Paste the new `Code.gs` and click **Save**. That's it: the timer always runs the saved code.
 
 ## Limits and safety
 
@@ -96,7 +101,9 @@ Paste the new `Code.gs`, save, then **Deploy → Manage deployments → ✏️ E
   - Apps Script runs are capped at 6 minutes each. A draft takes about 20–60 seconds.
   - Gemini's free tier and QuickChart (a public chart service) are rate-limited. 2–3 stories a day is well within the limits.
 - **PIB pages are read from Google's servers.** If PIB blocks them, the bot says so; paste the release text instead.
-- **Telegram's delivery log may show "302" errors.** Apps Script answers web requests with a redirect, so Telegram's webhook info may show `Wrong response from the webhook: 302`. The bot handles each message once, so duplicates are ignored.
+- **Replies take up to a minute,** because the bot checks Telegram every minute.
+  - This uses about 15 minutes of the 90-minute daily Apps Script timer allowance, leaving plenty for drafting.
+  - It's used instead of a webhook because Apps Script web apps answer with redirects, which Telegram treats as failures.
 - **The source link always comes from the page the bot read, not from the model.** This prevents wrong-release links.
 - **If a token leaks,** revoke it where you created it (BotFather `/revoke`, AI Studio or sanity.io/manage), make a new one and update the script property.
 - **What the bot can't judge:** whether a release is worth a story, and whether the angle is fair. That's your 10 minutes.

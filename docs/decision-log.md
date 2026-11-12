@@ -150,14 +150,16 @@ Original notes:
 ## D009 — Phone publishing: Telegram bot on Google Apps Script — 2026-11-12 — Accepted
 
 - **Goal:** publish from a phone in about 15 minutes a day, with no laptop.
-- **Choice:** a Telegram bot running as a free Google Apps Script web app (`automation/telegram-bot/`).
+- **Choice:** a Telegram bot running as a free Google Apps Script project (`automation/telegram-bot/`).
+  - It checks Telegram for new messages every minute (`poll` trigger).
+  - Webhooks were dropped on 2026-11-12: Apps Script web apps reply with a 302 redirect, which Telegram treats as failed delivery, so messages piled up unanswered.
   - Gemini writes the drafts; QuickChart renders the featured chart.
   - Drafts are saved to Sanity through the HTTP API with an Editor token kept in Script properties.
 - **Guardrails:**
   - The bot only creates **drafts**. Publishing needs the owner's `/publish`, and drafts with warnings need `/publish slug checked`.
   - Every number in the story must be in the source, or come from a calculation the model declares and the bot re-computes.
   - The source link is taken from the fetched page, never from the model.
-  - Only the owner's chat ID is served, and the webhook needs a secret.
+  - Only the owner's chat ID is served.
 - **Why not fully automatic:** both recent story batches had errors that a source check caught, including a wrong historical series and source links to unrelated releases. Google's spam policies and AdSense also penalise unreviewed, scaled AI content.
 - **Cost:** ₹0. Apps Script, the Telegram Bot API, the Gemini free tier and QuickChart are all free at this volume.
 - **Rejected:**
